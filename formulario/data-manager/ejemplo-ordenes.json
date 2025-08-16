@@ -1,0 +1,33 @@
+[
+    {
+        "id": "ORD-001",
+        "uuid": "uuid-ord-001",
+        "sapOrderId": 98765,
+        "siteId": "SITE-A",
+        "details": [
+            {
+                "lineItem": "Item 1",
+                "description": "Descripción del item 1",
+                "quantity": 10
+            },
+            {
+                "lineItem": "Item 2",
+                "description": "Descripción del item 2",
+                "quantity": 5
+            }
+        ]
+    },
+    {
+        "id": "ORD-002",
+        "uuid": "uuid-ord-002",
+        "sapOrderId": 98766,
+        "siteId": "SITE-B",
+        "details": [
+            {
+                "lineItem": "Item 3",
+                "description": "Descripción del item 3",
+                "quantity": 7
+            }
+        ]
+    }
+]

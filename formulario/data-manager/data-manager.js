@@ -1,13 +1,24 @@
 // =============================================================================
-// GESTOR DE DATOS JSON - PRUEBA DE CONCEPTO
+// GESTOR DE DATOS JSON - VERSIÓN REFACTORIZADA Y FLEXIBLE
 // =============================================================================
 
 class DataManager {
-    constructor() {
-        this.storagePrefix = 'poc_data_';
-        this.entities = ['facturas', 'ordenes'];
-        this.currentEntity = 'facturas';
+    constructor(config = null) {
+        // Cargar configuración
+        this.config = config || ENTITY_CONFIG;
+        this.settings = this.config.settings;
+        this.entityConfig = this.config.entities;
+        
+        // Propiedades del sistema
+        this.storagePrefix = this.settings.storagePrefix;
+        this.entities = Object.keys(this.entityConfig);
+        this.currentEntity = this.entities[0] || null; // Primera entidad por defecto
         this.currentEditingIndex = -1;
+        
+        // Validar que existan entidades
+        if (this.entities.length === 0) {
+            throw new Error('No se han definido entidades en la configuración');
+        }
     }
 
     // =============================================================================
@@ -15,7 +26,11 @@ class DataManager {
     // =============================================================================
 
     initialize() {
-        console.log('🚀 Inicializando Gestor de Datos...');
+        console.log('🚀 Inicializando Gestor de Datos Flexible...');
+        console.log(`📊 Entidades disponibles: ${this.entities.join(', ')}`);
+        
+        // Generar interfaz dinámica
+        this.generateDynamicInterface();
         
         // Configurar event listeners
         this.setupEventListeners();
@@ -23,25 +38,97 @@ class DataManager {
         // Cargar datos existentes
         this.refreshData();
         
-        console.log('✅ Gestor de Datos inicializado');
+        console.log('✅ Gestor de Datos inicializado correctamente');
+    }
+
+    generateDynamicInterface() {
+        // Generar tabs de entidades
+        this.generateEntityTabs();
+        
+        // Generar inputs de archivos
+        this.generateFileInputs();
+        
+        // Actualizar título
+        this.updateTitle();
+    }
+
+    generateEntityTabs() {
+        const tabsContainer = document.querySelector('.entity-tabs');
+        if (!tabsContainer) return;
+
+        const tabsHtml = this.entities.map((entityKey, index) => {
+            const config = this.entityConfig[entityKey];
+            const activeClass = index === 0 ? 'active' : '';
+            
+            return `
+                <div class="tab ${activeClass}" data-entity="${entityKey}" onclick="switchEntity('${entityKey}')">
+                    ${config.icon} ${config.displayName}
+                </div>
+            `;
+        }).join('');
+
+        tabsContainer.innerHTML = tabsHtml;
+    }
+
+    generateFileInputs() {
+        const sidebar = document.querySelector('.sidebar-header');
+        if (!sidebar) return;
+
+        // Encontrar el contenedor de uploads o crearlo
+        let uploadsContainer = sidebar.querySelector('.uploads-container');
+        if (!uploadsContainer) {
+            uploadsContainer = document.createElement('div');
+            uploadsContainer.className = 'uploads-container';
+            
+            // Insertar después del h3
+            const h3 = sidebar.querySelector('h3');
+            h3.insertAdjacentElement('afterend', uploadsContainer);
+        }
+
+        const uploadsHtml = this.entities.map(entityKey => {
+            const config = this.entityConfig[entityKey];
+            
+            return `
+                <div class="upload-section">
+                    <label for="${entityKey}-file">${config.icon} Cargar ${config.displayName} (JSON):</label>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="${entityKey}-file" class="file-input" accept=".json" multiple>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        uploadsContainer.innerHTML = uploadsHtml;
+    }
+
+    updateTitle() {
+        const titleElement = document.getElementById('content-title');
+        if (titleElement && this.currentEntity) {
+            const config = this.entityConfig[this.currentEntity];
+            titleElement.textContent = `📊 ${config.displayName}`;
+        }
     }
 
     setupEventListeners() {
-        // Event listeners para carga de archivos
-        document.getElementById('facturas-file').addEventListener('change', (e) => {
-            this.handleFileUpload('facturas', e.target.files);
-        });
-
-        document.getElementById('ordenes-file').addEventListener('change', (e) => {
-            this.handleFileUpload('ordenes', e.target.files);
+        // Event listeners dinámicos para carga de archivos
+        this.entities.forEach(entityKey => {
+            const fileInput = document.getElementById(`${entityKey}-file`);
+            if (fileInput) {
+                fileInput.addEventListener('change', (e) => {
+                    this.handleFileUpload(entityKey, e.target.files);
+                });
+            }
         });
 
         // Event listener para cerrar modal al hacer clic fuera
-        document.getElementById('edit-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'edit-modal') {
-                this.closeModal();
-            }
-        });
+        const modal = document.getElementById('edit-modal');
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target.id === 'edit-modal') {
+                    this.closeModal();
+                }
+            });
+        }
     }
 
     // =============================================================================
@@ -49,15 +136,26 @@ class DataManager {
     // =============================================================================
 
     getData(entityType) {
+        if (!this.entityExists(entityType)) {
+            console.warn(`Entidad '${entityType}' no existe en la configuración`);
+            return [];
+        }
+
         const storageKey = `${this.storagePrefix}${entityType}`;
         const data = localStorage.getItem(storageKey);
         return data ? JSON.parse(data) : [];
     }
 
     saveData(entityType, data) {
+        if (!this.entityExists(entityType)) {
+            console.error(`No se puede guardar datos para entidad inexistente: ${entityType}`);
+            return false;
+        }
+
         const storageKey = `${this.storagePrefix}${entityType}`;
         localStorage.setItem(storageKey, JSON.stringify(data));
         this.updateLastModified(entityType);
+        return true;
     }
 
     updateLastModified(entityType) {
@@ -71,6 +169,11 @@ class DataManager {
     }
 
     clearData(entityType) {
+        if (!this.entityExists(entityType)) {
+            console.warn(`No se puede limpiar datos de entidad inexistente: ${entityType}`);
+            return false;
+        }
+
         const storageKey = `${this.storagePrefix}${entityType}`;
         const modifiedKey = `${this.storagePrefix}${entityType}_modified`;
         const filesKey = `${this.storagePrefix}${entityType}_files`;
@@ -78,6 +181,7 @@ class DataManager {
         localStorage.removeItem(storageKey);
         localStorage.removeItem(modifiedKey);
         localStorage.removeItem(filesKey);
+        return true;
     }
 
     // =============================================================================
@@ -86,6 +190,10 @@ class DataManager {
 
     async handleFileUpload(entityType, files) {
         if (!files || files.length === 0) return;
+        if (!this.entityExists(entityType)) {
+            this.showAlert('error', `Entidad '${entityType}' no válida`);
+            return;
+        }
 
         const loadedFiles = [];
         let totalRecordsAdded = 0;
@@ -97,13 +205,12 @@ class DataManager {
                 totalRecordsAdded += result.recordsAdded;
             }
 
-            // Mostrar mensaje de éxito
+            const config = this.entityConfig[entityType];
             this.showAlert('success', 
                 `✅ ${loadedFiles.length} archivo(s) cargado(s) exitosamente!\n` +
-                `${totalRecordsAdded} registro(s) agregado(s) a ${entityType}`
+                `${totalRecordsAdded} registro(s) agregado(s) a ${config.displayName}`
             );
 
-            // Actualizar vista
             this.refreshData();
 
         } catch (error) {
@@ -111,7 +218,10 @@ class DataManager {
         }
 
         // Limpiar input
-        document.getElementById(`${entityType}-file`).value = '';
+        const fileInput = document.getElementById(`${entityType}-file`);
+        if (fileInput) {
+            fileInput.value = '';
+        }
     }
 
     async loadFileFromInput(entityType, file) {
@@ -125,6 +235,11 @@ class DataManager {
                     
                     // Convertir a array si es un objeto único
                     let newData = Array.isArray(fileData) ? fileData : [fileData];
+                    
+                    // Validar datos si está configurado
+                    if (this.entityConfig[entityType].config.validateOnSave) {
+                        newData = this.validateEntityData(entityType, newData);
+                    }
                     
                     // Agregar a los datos existentes
                     const existingData = this.getData(entityType);
@@ -150,11 +265,29 @@ class DataManager {
         });
     }
 
+    validateEntityData(entityType, dataArray) {
+        const config = this.entityConfig[entityType];
+        const requiredFields = config.fields.filter(field => field.required).map(field => field.key);
+        
+        return dataArray.filter(record => {
+            // Verificar campos requeridos
+            const hasRequiredFields = requiredFields.every(field => 
+                record.hasOwnProperty(field) && record[field] !== null && record[field] !== ""
+            );
+            
+            if (!hasRequiredFields) {
+                console.warn(`Registro omitido por campos requeridos faltantes:`, record);
+                return false;
+            }
+            
+            return true;
+        });
+    }
+
     addFileToIndex(entityType, fileName, recordCount) {
         const filesKey = `${this.storagePrefix}${entityType}_files`;
         const index = JSON.parse(localStorage.getItem(filesKey) || '[]');
         
-        // Evitar duplicados por nombre
         const existingIndex = index.findIndex(item => item.name === fileName);
         const fileInfo = {
             name: fileName,
@@ -181,58 +314,76 @@ class DataManager {
     // =============================================================================
 
     refreshData() {
-        this.renderDataTable(this.currentEntity);
+        if (this.currentEntity) {
+            this.renderDataTable(this.currentEntity);
+            this.updateTitle();
+        }
     }
 
     switchEntity(entityType) {
+        if (!this.entityExists(entityType)) {
+            console.error(`No se puede cambiar a entidad inexistente: ${entityType}`);
+            return;
+        }
+
         // Actualizar tabs
         document.querySelectorAll('.tab').forEach(tab => {
             tab.classList.remove('active');
         });
-        document.querySelector(`[data-entity="${entityType}"]`).classList.add('active');
+        
+        const activeTab = document.querySelector(`[data-entity="${entityType}"]`);
+        if (activeTab) {
+            activeTab.classList.add('active');
+        }
         
         // Cambiar entidad actual
         this.currentEntity = entityType;
         
-        // Renderizar datos
+        // Renderizar datos y actualizar título
         this.renderDataTable(entityType);
+        this.updateTitle();
     }
 
     renderDataTable(entityType) {
         const data = this.getData(entityType);
         const container = document.getElementById('data-content');
+        const config = this.entityConfig[entityType];
         
+        if (!container) {
+            console.error('Contenedor de datos no encontrado');
+            return;
+        }
+
         if (data.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
-                    <div class="empty-state-icon">📂</div>
-                    <h3>No hay ${entityType} cargadas</h3>
-                    <p>Carga archivos JSON de ${entityType} para comenzar</p>
+                    <div class="empty-state-icon">${config.icon}</div>
+                    <h3>No hay ${config.displayName.toLowerCase()} cargadas</h3>
+                    <p>Carga archivos JSON de ${config.displayName.toLowerCase()} para comenzar</p>
                 </div>
             `;
             return;
         }
 
-        // Generar tabla basada en el tipo de entidad
-        let tableHtml = '';
-        
-        if (entityType === 'facturas') {
-            tableHtml = this.renderFacturasTable(data);
-        } else if (entityType === 'ordenes') {
-            tableHtml = this.renderOrdenesTable(data);
-        }
-        
+        // Generar tabla dinámica
+        const tableHtml = this.generateDynamicTable(data, entityType);
         container.innerHTML = tableHtml;
     }
 
-    renderFacturasTable(data) {
-        const rows = data.map((factura, index) => `
-            <tr>
-                <td>${factura.external_id || 'N/A'}</td>
-                <td>${factura.sap_order_id || 'N/A'}</td>
-                <td>${factura.vendor_name || 'N/A'}</td>
-                <td>${factura.site_id || 'N/A'}</td>
-                <td>${factura.details ? factura.details.length : 0}</td>
+    generateDynamicTable(data, entityType) {
+        const config = this.entityConfig[entityType];
+        
+        // Generar headers
+        const headers = config.fields.map(field => `<th>${field.label}</th>`).join('');
+        
+        // Generar filas
+        const rows = data.map((record, index) => {
+            const cells = config.fields.map(field => {
+                let cellValue = this.formatCellValue(record[field.key], field);
+                return `<td>${cellValue}</td>`;
+            }).join('');
+            
+            const actions = `
                 <td>
                     <div class="record-actions">
                         <button class="btn btn-primary btn-sm" onclick="dataManager.editRecord(${index})">
@@ -243,20 +394,15 @@ class DataManager {
                         </button>
                     </div>
                 </td>
-            </tr>
-        `).join('');
+            `;
+            
+            return `<tr>${cells}${actions}</tr>`;
+        }).join('');
 
         return `
             <table class="data-table">
                 <thead>
-                    <tr>
-                        <th>EXTERNAL ID</th>
-                        <th>Nro Orden</th>
-                        <th>Proveedor</th>
-                        <th>Sitio</th>
-                        <th>Detalles</th>
-                        <th>Acciones</th>
-                    </tr>
+                    <tr>${headers}<th>Acciones</th></tr>
                 </thead>
                 <tbody>
                     ${rows}
@@ -265,42 +411,30 @@ class DataManager {
         `;
     }
 
-    renderOrdenesTable(data) {
-        const rows = data.map((orden, index) => `
-            <tr>
-                <td>${orden.id || 'N/A'}</td>
-                <td>${orden.sapOrderId || 'N/A'}</td>
-                <td>${orden.siteId || 'N/A'}</td>
-                <td>${orden.details ? orden.details.length : 0}</td>
-                <td>
-                    <div class="record-actions">
-                        <button class="btn btn-primary btn-sm" onclick="dataManager.editRecord(${index})">
-                            ✏️ Editar
-                        </button>
-                        <button class="btn btn-danger btn-sm" onclick="dataManager.deleteRecord(${index})">
-                            🗑️ Eliminar
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        `).join('');
+    formatCellValue(value, field) {
+        if (value === null || value === undefined) {
+            return 'N/A';
+        }
 
-        return `
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>SAP Order ID</th>
-                        <th>Sitio</th>
-                        <th>Detalles</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${rows}
-                </tbody>
-            </table>
-        `;
+        switch (field.type) {
+            case 'array':
+                if (field.display === 'count') {
+                    return Array.isArray(value) ? value.length : 0;
+                }
+                return Array.isArray(value) ? value.join(', ') : value;
+            
+            case 'currency':
+                return typeof value === 'number' ? `$${value.toFixed(2)}` : value;
+            
+            case 'date':
+                return value ? new Date(value).toLocaleDateString() : 'N/A';
+            
+            case 'boolean':
+                return value ? '✅' : '❌';
+            
+            default:
+                return value;
+        }
     }
 
     // =============================================================================
@@ -316,61 +450,88 @@ class DataManager {
 
         this.currentEditingIndex = index;
         const record = data[index];
+        const config = this.entityConfig[this.currentEntity];
         
         // Mostrar modal
-        document.getElementById('modal-title').textContent = 
-            `✏️ Editar ${this.currentEntity.slice(0, -1)} #${index + 1}`;
-        document.getElementById('record-json').value = JSON.stringify(record, null, 2);
-        document.getElementById('edit-modal').style.display = 'block';
+        const modalTitle = document.getElementById('modal-title');
+        const recordJson = document.getElementById('record-json');
+        const modal = document.getElementById('edit-modal');
+        
+        if (modalTitle) {
+            modalTitle.textContent = `✏️ Editar ${config.displayNameSingular} #${index + 1}`;
+        }
+        
+        if (recordJson) {
+            recordJson.value = JSON.stringify(record, null, 2);
+        }
+        
+        if (modal) {
+            modal.style.display = 'block';
+        }
     }
 
     addNewRecord() {
+        if (!this.currentEntity) {
+            this.showAlert('error', 'No hay entidad seleccionada');
+            return;
+        }
+
         this.currentEditingIndex = -1;
+        const config = this.entityConfig[this.currentEntity];
+        const template = { ...config.template };
         
-        // Plantilla básica según el tipo de entidad
-        let template = {};
-        if (this.currentEntity === 'facturas') {
-            template = {
-                external_id: "",
-                sap_order_id: null,
-                inner_id: null,
-                id: "",
-                order_id: "",
-                vendor_name: "",
-                site_id: "",
-                details: []
-            };
-        } else if (this.currentEntity === 'ordenes') {
-            template = {
-                id: "",
-                uuid: "",
-                sapOrderId: null,
-                siteId: "",
-                details: []
-            };
+        // Auto-generar ID si está configurado
+        if (config.config.autoGenerateId) {
+            const data = this.getData(this.currentEntity);
+            template.id = `${this.currentEntity}_${Date.now()}_${data.length + 1}`;
         }
         
-        document.getElementById('modal-title').textContent = 
-            `➕ Nuevo ${this.currentEntity.slice(0, -1)}`;
-        document.getElementById('record-json').value = JSON.stringify(template, null, 2);
-        document.getElementById('edit-modal').style.display = 'block';
+        const modalTitle = document.getElementById('modal-title');
+        const recordJson = document.getElementById('record-json');
+        const modal = document.getElementById('edit-modal');
+        
+        if (modalTitle) {
+            modalTitle.textContent = `➕ Nuevo ${config.displayNameSingular}`;
+        }
+        
+        if (recordJson) {
+            recordJson.value = JSON.stringify(template, null, 2);
+        }
+        
+        if (modal) {
+            modal.style.display = 'block';
+        }
     }
 
     saveRecord() {
         try {
-            const jsonText = document.getElementById('record-json').value;
+            const recordJson = document.getElementById('record-json');
+            if (!recordJson) {
+                throw new Error('Editor JSON no encontrado');
+            }
+
+            const jsonText = recordJson.value;
             const recordData = JSON.parse(jsonText);
+            const config = this.entityConfig[this.currentEntity];
+            
+            // Validar campos requeridos
+            if (config.config.validateOnSave) {
+                const validationResult = this.validateSingleRecord(this.currentEntity, recordData);
+                if (!validationResult.isValid) {
+                    throw new Error(`Validación fallida: ${validationResult.errors.join(', ')}`);
+                }
+            }
             
             const data = this.getData(this.currentEntity);
             
             if (this.currentEditingIndex >= 0) {
                 // Editar registro existente
                 data[this.currentEditingIndex] = recordData;
-                this.showAlert('success', '✅ Registro actualizado exitosamente');
+                this.showAlert('success', `✅ ${config.displayNameSingular} actualizado exitosamente`);
             } else {
                 // Agregar nuevo registro
                 data.push(recordData);
-                this.showAlert('success', '✅ Registro agregado exitosamente');
+                this.showAlert('success', `✅ ${config.displayNameSingular} agregado exitosamente`);
             }
             
             this.saveData(this.currentEntity, data);
@@ -378,12 +539,36 @@ class DataManager {
             this.renderDataTable(this.currentEntity);
             
         } catch (error) {
-            this.showAlert('error', `❌ Error en JSON: ${error.message}`);
+            this.showAlert('error', `❌ Error: ${error.message}`);
         }
     }
 
+    validateSingleRecord(entityType, record) {
+        const config = this.entityConfig[entityType];
+        const errors = [];
+        
+        // Verificar campos requeridos
+        config.fields.forEach(field => {
+            if (field.required) {
+                if (!record.hasOwnProperty(field.key) || record[field.key] === null || record[field.key] === "") {
+                    errors.push(`Campo requerido faltante: ${field.label}`);
+                }
+            }
+        });
+        
+        return {
+            isValid: errors.length === 0,
+            errors
+        };
+    }
+
     deleteRecord(index) {
-        if (!confirm('¿Estás seguro de que quieres eliminar este registro?')) {
+        const config = this.entityConfig[this.currentEntity];
+        const confirmMessage = config.config.confirmDelete 
+            ? `¿Estás seguro de que quieres eliminar este ${config.displayNameSingular.toLowerCase()}?`
+            : null;
+            
+        if (confirmMessage && !confirm(confirmMessage)) {
             return;
         }
         
@@ -396,11 +581,14 @@ class DataManager {
         data.splice(index, 1);
         this.saveData(this.currentEntity, data);
         this.renderDataTable(this.currentEntity);
-        this.showAlert('success', '✅ Registro eliminado exitosamente');
+        this.showAlert('success', `✅ ${config.displayNameSingular} eliminado exitosamente`);
     }
 
     closeModal() {
-        document.getElementById('edit-modal').style.display = 'none';
+        const modal = document.getElementById('edit-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
         this.currentEditingIndex = -1;
     }
 
@@ -408,8 +596,14 @@ class DataManager {
     // UTILIDADES
     // =============================================================================
 
+    entityExists(entityType) {
+        return entityType in this.entityConfig;
+    }
+
     showAlert(type, message) {
         const container = document.getElementById('alerts-container');
+        if (!container) return;
+
         const alertDiv = document.createElement('div');
         alertDiv.className = `alert alert-${type}`;
         alertDiv.textContent = message;
@@ -425,7 +619,13 @@ class DataManager {
     }
 
     exportData(entityType) {
+        if (!this.entityExists(entityType)) {
+            this.showAlert('error', `Entidad '${entityType}' no válida`);
+            return;
+        }
+
         const data = this.getData(entityType);
+        const config = this.entityConfig[entityType];
         const fileName = `${entityType}-export-${new Date().toISOString().split('T')[0]}.json`;
         
         const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
@@ -438,7 +638,7 @@ class DataManager {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         
-        this.showAlert('success', `📥 ${entityType} exportadas como ${fileName}`);
+        this.showAlert('success', `📥 ${config.displayName} exportadas como ${fileName}`);
     }
 
     exportAllData() {
@@ -448,7 +648,9 @@ class DataManager {
     }
 
     clearAllData() {
-        if (!confirm('⚠️ ¿Estás seguro de que quieres eliminar TODOS los datos? Esta acción no se puede deshacer.')) {
+        const entityNames = this.entities.map(key => this.entityConfig[key].displayName).join(', ');
+        
+        if (!confirm(`⚠️ ¿Estás seguro de que quieres eliminar TODOS los datos de: ${entityNames}?\n\nEsta acción no se puede deshacer.`)) {
             return;
         }
         
@@ -459,6 +661,41 @@ class DataManager {
         this.refreshData();
         this.showAlert('success', '✅ Todos los datos han sido eliminados');
     }
+
+    // =============================================================================
+    // INFORMACIÓN DEL SISTEMA
+    // =============================================================================
+
+    getSystemInfo() {
+        const info = {
+            version: '2.0.0',
+            entities: this.entities,
+            currentEntity: this.currentEntity,
+            settings: this.settings,
+            dataStats: {}
+        };
+
+        // Agregar estadísticas de datos
+        this.entities.forEach(entity => {
+            const data = this.getData(entity);
+            const files = this.getFileIndex(entity);
+            const lastModified = this.getLastModified(entity);
+            
+            info.dataStats[entity] = {
+                recordCount: data.length,
+                filesLoaded: files.length,
+                lastModified: lastModified
+            };
+        });
+
+        return info;
+    }
+
+    printSystemInfo() {
+        const info = this.getSystemInfo();
+        console.log('📊 Información del Sistema Data Manager:', info);
+        return info;
+    }
 }
 
 // =============================================================================
@@ -466,35 +703,35 @@ class DataManager {
 // =============================================================================
 
 // Instancia global del gestor
-const dataManager = new DataManager();
+let dataManager = null;
 
 // Funciones globales para uso en HTML
 function refreshData() {
-    dataManager.refreshData();
+    if (dataManager) dataManager.refreshData();
 }
 
 function exportAllData() {
-    dataManager.exportAllData();
+    if (dataManager) dataManager.exportAllData();
 }
 
 function clearAllData() {
-    dataManager.clearAllData();
+    if (dataManager) dataManager.clearAllData();
 }
 
 function switchEntity(entityType) {
-    dataManager.switchEntity(entityType);
+    if (dataManager) dataManager.switchEntity(entityType);
 }
 
 function addNewRecord() {
-    dataManager.addNewRecord();
+    if (dataManager) dataManager.addNewRecord();
 }
 
 function closeModal() {
-    dataManager.closeModal();
+    if (dataManager) dataManager.closeModal();
 }
 
 function saveRecord() {
-    dataManager.saveRecord();
+    if (dataManager) dataManager.saveRecord();
 }
 
 // =============================================================================
@@ -502,5 +739,28 @@ function saveRecord() {
 // =============================================================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    dataManager.initialize();
+    try {
+        // Crear instancia del gestor con configuración
+        dataManager = new DataManager();
+        dataManager.initialize();
+        
+        // Información del sistema para debug
+        dataManager.printSystemInfo();
+        
+    } catch (error) {
+        console.error('❌ Error inicializando Data Manager:', error);
+        
+        // Mostrar error en la interfaz si es posible
+        const container = document.getElementById('data-content');
+        if (container) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">⚠️</div>
+                    <h3>Error de Inicialización</h3>
+                    <p>${error.message}</p>
+                    <p>Revisa la configuración en entity-config.js</p>
+                </div>
+            `;
+        }
+    }
 });

@@ -1,0 +1,39 @@
+[
+    {
+        "external_id": "FAC-001",
+        "sap_order_id": 12345,
+        "inner_id": "INT-001",
+        "id": "uuid-001",
+        "order_id": "ORD-001",
+        "vendor_name": "Proveedor Test 1",
+        "site_id": "SITE-A",
+        "details": [
+            {
+                "item": "Producto A",
+                "quantity": 10,
+                "price": 100.50
+            },
+            {
+                "item": "Producto B", 
+                "quantity": 5,
+                "price": 75.25
+            }
+        ]
+    },
+    {
+        "external_id": "FAC-002",
+        "sap_order_id": 12346,
+        "inner_id": "INT-002",
+        "id": "uuid-002",
+        "order_id": "ORD-002",
+        "vendor_name": "Proveedor Test 2",
+        "site_id": "SITE-B",
+        "details": [
+            {
+                "item": "Producto C",
+                "quantity": 3,
+                "price": 200.00
+            }
+        ]
+    }
+]

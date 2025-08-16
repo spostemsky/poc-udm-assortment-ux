@@ -3,360 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestor de Datos JSON - Prueba de Concepto</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f6fa;
-            line-height: 1.6;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 2rem;
-            text-align: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .header p {
-            opacity: 0.9;
-            font-size: 1.1rem;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-        }
-
-
-
-        .main-content {
-            display: grid;
-            grid-template-columns: 350px 1fr;
-            gap: 2rem;
-        }
-
-        .sidebar {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
-            height: fit-content;
-        }
-
-        .sidebar-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid #eee;
-        }
-
-        .sidebar-header h3 {
-            color: #2c3e50;
-            margin-bottom: 1rem;
-        }
-
-        .upload-section {
-            margin-bottom: 1.5rem;
-        }
-
-        .upload-section label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: #555;
-        }
-
-        .file-input-wrapper {
-            position: relative;
-            margin-bottom: 1rem;
-        }
-
-        .file-input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 2px dashed #ddd;
-            border-radius: 8px;
-            background: #f9f9f9;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .file-input:hover {
-            border-color: #667eea;
-            background: #f0f2ff;
-        }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-            text-align: center;
-        }
-
-        .btn-primary {
-            background: #667eea;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #5a67d8;
-            transform: translateY(-1px);
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-
-        .btn-danger {
-            background: #e74c3c;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #c0392b;
-        }
-
-        .btn-success {
-            background: #27ae60;
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: #229954;
-        }
-
-        .actions {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-
-        .content-area {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
-            min-height: 600px;
-        }
-
-        .content-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .content-body {
-            padding: 1.5rem;
-        }
-
-        .entity-tabs {
-            display: flex;
-            border-bottom: 1px solid #eee;
-            margin-bottom: 1rem;
-        }
-
-        .tab {
-            padding: 1rem 1.5rem;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-            transition: all 0.3s ease;
-            font-weight: 500;
-        }
-
-        .tab.active {
-            border-bottom-color: #667eea;
-            color: #667eea;
-            background: #f0f2ff;
-        }
-
-        .tab:hover:not(.active) {
-            background: #f8f9fa;
-        }
-
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1rem;
-        }
-
-        .data-table th,
-        .data-table td {
-            padding: 0.75rem;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-
-        .data-table th {
-            background: #f8f9fa;
-            font-weight: 600;
-            color: #2c3e50;
-            position: sticky;
-            top: 0;
-        }
-
-        .data-table tr:hover {
-            background: #f8f9fa;
-        }
-
-        .record-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .btn-sm {
-            padding: 0.4rem 0.8rem;
-            font-size: 0.85rem;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 3rem;
-            color: #6c757d;
-        }
-
-        .empty-state-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-        }
-
-        .alert {
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-
-        .alert-success {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
-        }
-
-        .alert-error {
-            background: #f8d7da;
-            border: 1px solid #f5c6cb;
-            color: #721c24;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-        }
-
-        .modal-content {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            border-radius: 12px;
-            max-width: 800px;
-            width: 90%;
-            max-height: 90%;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-body {
-            padding: 1.5rem;
-        }
-
-        .modal-footer {
-            padding: 1rem 1.5rem;
-            border-top: 1px solid #eee;
-            display: flex;
-            gap: 1rem;
-            justify-content: flex-end;
-        }
-
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: #6c757d;
-        }
-
-        .form-group {
-            margin-bottom: 1rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: #555;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 1rem;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .json-editor {
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 0.9rem;
-            min-height: 300px;
-            resize: vertical;
-        }
-
-        @media (max-width: 768px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-            
-            .actions {
-                flex-direction: column;
-            }
-        }
-    </style>
+    <title>Gestor de Datos JSON - Versión Flexible</title>
+    <link rel="stylesheet" href="data-manager.css">
 </head>
 <body>
     <div class="header">
         <h1>🗃️ Gestor de Datos JSON</h1>
+        <p>Versión 2.0 - Completamente Flexible y Reutilizable</p>
     </div>
 
     <div class="container">
@@ -367,60 +20,62 @@
                 <div class="sidebar-header">
                     <h3>⚙️ Gestión de Archivos</h3>
                     
-                    <!-- Carga de Facturas -->
-                    <div class="upload-section">
-                        <label for="facturas-file">📄 Cargar Facturas (JSON):</label>
-                        <div class="file-input-wrapper">
-                            <input type="file" id="facturas-file" class="file-input" accept=".json" multiple>
-                        </div>
+                    <!-- Los inputs de archivos se generan dinámicamente aquí -->
+                    <div class="uploads-container">
+                        <!-- Se genera automáticamente por JavaScript basado en entity-config.js -->
                     </div>
 
-                    <!-- Carga de Órdenes -->
-                    <div class="upload-section">
-                        <label for="ordenes-file">📋 Cargar Órdenes (JSON):</label>
-                        <div class="file-input-wrapper">
-                            <input type="file" id="ordenes-file" class="file-input" accept=".json" multiple>
-                        </div>
-                    </div>
-
-                    <!-- Acciones -->
+                    <!-- Acciones Globales -->
                     <div class="actions">
-                        <button class="btn btn-primary btn-sm" onclick="refreshData()">🔄 Actualizar</button>
-                        <button class="btn btn-success btn-sm" onclick="exportAllData()">📥 Exportar Todo</button>
-                        <button class="btn btn-danger btn-sm" onclick="clearAllData()">🗑️ Limpiar</button>
+                        <button class="btn btn-primary btn-sm" onclick="refreshData()" title="Actualizar vista de datos">
+                            🔄 Actualizar
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="exportAllData()" title="Exportar todos los datos">
+                            📥 Exportar Todo
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="clearAllData()" title="Eliminar todos los datos">
+                            🗑️ Limpiar
+                        </button>
                     </div>
+                </div>
+
+                <!-- Información del Sistema (para desarrollo) -->
+                <div class="sidebar-footer" style="padding: 1rem; border-top: 1px solid #eee; margin-top: 1rem;">
+                    <small style="color: #6c757d;">
+                        <strong>Data Manager v2.0</strong><br>
+                        Sistema flexible de gestión de datos JSON<br>
+                        <em>Configurable mediante entity-config.js</em>
+                    </small>
                 </div>
             </div>
 
             <!-- Área de Contenido -->
             <div class="content-area">
                 <div class="content-header">
-                    <h2 id="content-title">📊 Visualizador de Datos</h2>
+                    <h2 id="content-title">📊 Gestor de Datos</h2>
                     <div class="actions">
-                        <button class="btn btn-primary btn-sm" onclick="addNewRecord()">➕ Nuevo Registro</button>
+                        <button class="btn btn-primary btn-sm" onclick="addNewRecord()" title="Crear nuevo registro">
+                            ➕ Nuevo Registro
+                        </button>
                     </div>
                 </div>
 
                 <div class="content-body">
-                    <!-- Alertas -->
+                    <!-- Contenedor de Alertas -->
                     <div id="alerts-container"></div>
 
-                    <!-- Tabs de Entidades -->
+                    <!-- Tabs de Entidades (se generan dinámicamente) -->
                     <div class="entity-tabs">
-                        <div class="tab active" data-entity="facturas" onclick="switchEntity('facturas')">
-                            📄 Facturas
-                        </div>
-                        <div class="tab" data-entity="ordenes" onclick="switchEntity('ordenes')">
-                            📋 Órdenes
-                        </div>
+                        <!-- Se genera automáticamente por JavaScript basado en entity-config.js -->
                     </div>
 
                     <!-- Contenido de Datos -->
                     <div id="data-content">
+                        <!-- Estado inicial mientras carga -->
                         <div class="empty-state">
-                            <div class="empty-state-icon">📂</div>
-                            <h3>No hay datos cargados</h3>
-                            <p>Carga archivos JSON usando la barra lateral para comenzar</p>
+                            <div class="empty-state-icon">⏳</div>
+                            <h3>Inicializando Sistema...</h3>
+                            <p>Cargando configuración y datos</p>
                         </div>
                     </div>
                 </div>
@@ -428,26 +83,128 @@
         </div>
     </div>
 
-    <!-- Modal para Editar Registros -->
+    <!-- Modal para Editar/Crear Registros -->
     <div id="edit-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="modal-title">✏️ Editar Registro</h3>
-                <button class="close-btn" onclick="closeModal()">&times;</button>
+                <button class="close-btn" onclick="closeModal()" title="Cerrar modal">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
                     <label for="record-json">Datos JSON:</label>
-                    <textarea id="record-json" class="form-control json-editor" placeholder="Ingresa los datos en formato JSON..."></textarea>
+                    <textarea 
+                        id="record-json" 
+                        class="form-control json-editor" 
+                        placeholder="Ingresa los datos en formato JSON..."
+                        spellcheck="false"
+                    ></textarea>
+                </div>
+                <div class="json-help">
+                    <small style="color: #6c757d;">
+                        💡 <strong>Ayuda:</strong> 
+                        Edita los datos en formato JSON. Asegúrate de que la sintaxis sea válida.
+                        Los campos marcados como "required" en la configuración son obligatorios.
+                    </small>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
-                <button class="btn btn-primary" onclick="saveRecord()">💾 Guardar</button>
+                <button class="btn btn-secondary" onclick="closeModal()">
+                    Cancelar
+                </button>
+                <button class="btn btn-primary" onclick="saveRecord()">
+                    💾 Guardar
+                </button>
             </div>
         </div>
     </div>
 
+    <!-- Scripts -->
+    <!-- IMPORTANTE: El orden de carga es crucial -->
+    <script src="entity-config.js"></script>
     <script src="data-manager.js"></script>
+
+    <!-- Script adicional para funcionalidades avanzadas -->
+    <script>
+        // Funciones auxiliares para la interfaz
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mejorar la experiencia del editor JSON
+            const jsonEditor = document.getElementById('record-json');
+            if (jsonEditor) {
+                // Auto-formato cuando se pierde el foco
+                jsonEditor.addEventListener('blur', function() {
+                    try {
+                        const parsed = JSON.parse(this.value);
+                        this.value = JSON.stringify(parsed, null, 2);
+                    } catch (e) {
+                        // Si no es JSON válido, no hacer nada
+                    }
+                });
+
+                // Atajos de teclado
+                jsonEditor.addEventListener('keydown', function(e) {
+                    // Ctrl+S para guardar
+                    if (e.ctrlKey && e.key === 's') {
+                        e.preventDefault();
+                        saveRecord();
+                    }
+                    
+                    // Escape para cerrar
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        closeModal();
+                    }
+                });
+            }
+
+            // Atajos de teclado globales
+            document.addEventListener('keydown', function(e) {
+                // Ctrl+N para nuevo registro
+                if (e.ctrlKey && e.key === 'n') {
+                    e.preventDefault();
+                    addNewRecord();
+                }
+                
+                // Ctrl+R para actualizar
+                if (e.ctrlKey && e.key === 'r') {
+                    e.preventDefault();
+                    refreshData();
+                }
+            });
+
+            // Información de debug en consola
+            console.log('🚀 Data Manager HTML cargado');
+            console.log('📋 Atajos disponibles:');
+            console.log('   • Ctrl+N: Nuevo registro');
+            console.log('   • Ctrl+R: Actualizar datos');
+            console.log('   • Ctrl+S: Guardar (en modal)');
+            console.log('   • Escape: Cerrar modal');
+        });
+
+        // Función para mostrar información del sistema (útil para debug)
+        function showSystemInfo() {
+            if (dataManager) {
+                const info = dataManager.getSystemInfo();
+                console.table(info.dataStats);
+                alert(`Data Manager v${info.version}\n\nEntidades: ${info.entities.join(', ')}\nEntidad actual: ${info.currentEntity}`);
+            }
+        }
+
+        // Función para exportar una entidad específica
+        function exportEntity(entityKey) {
+            if (dataManager) {
+                dataManager.exportData(entityKey);
+            }
+        }
+
+        // Función para limpiar datos de una entidad específica
+        function clearEntityData(entityKey) {
+            if (dataManager && confirm(`¿Eliminar todos los datos de ${entityKey}?`)) {
+                dataManager.clearData(entityKey);
+                dataManager.refreshData();
+                dataManager.showAlert('success', `Datos de ${entityKey} eliminados`);
+            }
+        }
+    </script>
 </body>
 </html>
