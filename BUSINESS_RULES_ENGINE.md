@@ -349,51 +349,40 @@ class FormReactivity {
 
 ---
 
-## 🎮 Interfaz de Usuario
+## 🎮 Interfaz de Desarrollo
 
-### 👥 Tipos de Usuario y Permisos:
-
-#### **🔧 Desarrollador (Acceso Completo):**
-- ✅ **Crear nuevas reglas** desde interfaz visual
-- ✅ **Editar reglas existentes** con editor de código
-- ✅ **Eliminar reglas** 
-- ✅ **Activar/Desactivar reglas** temporalmente
-- ✅ **Acceso completo al debugger**
-- ✅ **Exportar/Importar configuraciones**
-
-#### **👤 Usuario Final (Acceso Limitado):**
-- ✅ **Ver reglas activas** (solo lectura)
-- ✅ **Activar/Desactivar reglas** existentes
-- ❌ **NO puede crear nuevas reglas**
-- ❌ **NO puede editar lógica de reglas**
-- ✅ **Ver logs básicos** (sin detalles técnicos)
-
-#### **🛡️ Administrador (Acceso Medio):**
-- ✅ **Activar/Desactivar reglas**
-- ✅ **Modificar parámetros** de reglas existentes
-- ✅ **Ver logs completos**
-- ❌ **NO puede crear/eliminar reglas**
-- ✅ **Configurar prioridades** de reglas
+### 🔧 Herramientas de Desarrollo:
+- ✅ **Editor Visual Drag & Drop** - Crear reglas sin tocar código JSON
+- ✅ **Editor de Código** - Edición directa de JSON con validación sintáctica
+- ✅ **Testing en Vivo** - Probar reglas con datos reales inmediatamente
+- ✅ **Debug Avanzado** - Logs detallados, contexto y paso a paso
+- ✅ **Performance Profiler** - Métricas de rendimiento y optimización
+- ✅ **Activar/Desactivar** - Toggle instantáneo para testing
+- ✅ **Exportar/Importar** - Compartir configuraciones entre proyectos
+- ✅ **Versionado** - Control de cambios en reglas
+- ✅ **Validación** - Sintaxis y lógica de reglas
+- ✅ **Hot Reload** - Cambios aplicados sin recargar página
 
 ### 🖥️ Interfaz Visual
 
 #### **Panel Principal (Siempre Visible):**
 ```html
-<!-- Botón flotante en esquina superior derecha -->
-<div id="rules-panel-toggle" class="rules-toggle-btn">
-    ⚙️ Reglas (5 activas)
+<!-- Panel de desarrollo siempre accesible -->
+<div id="rules-dev-panel-toggle" class="rules-dev-toggle">
+    🔧 Business Rules Engine - Dev Panel (5 reglas activas)
 </div>
 ```
 
-#### **Panel de Reglas (Expandible):**
+#### **Panel de Desarrollo (Expandible):**
 ```html
-<div id="rules-panel" class="rules-panel">
-    <!-- Pestañas -->
+<div id="rules-panel" class="rules-dev-panel">
+    <!-- Pestañas para desarrolladores -->
     <div class="rules-tabs">
-        <button class="tab active" data-tab="active-rules">Reglas Activas</button>
-        <button class="tab" data-tab="all-rules">Todas las Reglas</button>
-        <button class="tab" data-tab="logs">Logs</button>
-        <button class="tab" data-tab="editor">Editor</button> <!-- Solo desarrolladores -->
+        <button class="tab active" data-tab="editor">📝 Editor</button>
+        <button class="tab" data-tab="active-rules">⚡ Reglas Activas</button>
+        <button class="tab" data-tab="logs">📊 Debug & Logs</button>
+        <button class="tab" data-tab="testing">🧪 Testing</button>
+        <button class="tab" data-tab="performance">⏱️ Performance</button>
     </div>
     
     <!-- Contenido de pestañas -->
@@ -431,21 +420,109 @@ class FormReactivity {
             </div>
         </div>
         
-        <!-- Pestaña: Editor (Solo Desarrolladores) -->
+        <!-- Pestaña: Editor Visual + Código -->
         <div id="editor" class="tab-panel">
             <div class="editor-toolbar">
                 <button class="btn btn-primary">➕ Nueva Regla</button>
-                <button class="btn btn-secondary">📁 Importar</button>
-                <button class="btn btn-secondary">💾 Exportar</button>
+                <button class="btn btn-secondary">📁 Importar Config</button>
+                <button class="btn btn-secondary">💾 Exportar Config</button>
+                <button class="btn btn-warning">🧪 Test All Rules</button>
+                <button class="btn btn-info">🔄 Hot Reload</button>
+                <div class="editor-mode-toggle">
+                    <label>
+                        <input type="radio" name="editor-mode" value="visual" checked> 🎨 Visual Builder
+                    </label>
+                    <label>
+                        <input type="radio" name="editor-mode" value="code"> 💻 Code Editor
+                    </label>
+                    <label>
+                        <input type="radio" name="editor-mode" value="split"> 🔀 Split View
+                    </label>
+                </div>
             </div>
             
             <div class="rule-editor">
                 <div class="rule-list">
-                    <!-- Lista de reglas para editar -->
+                    <div class="rule-item-editor">
+                        <h4>🎯 factura_sku_matching</h4>
+                        <div class="rule-controls">
+                            <button class="btn btn-sm btn-edit">✏️ Editar</button>
+                            <button class="btn btn-sm btn-test">🧪 Probar</button>
+                            <button class="btn btn-sm btn-delete">🗑️</button>
+                            <label class="toggle-switch">
+                                <input type="checkbox" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
                 </div>
-                <div class="rule-code-editor">
-                    <textarea id="rule-json" class="code-editor"></textarea>
-                    <button class="btn btn-success">✅ Guardar Regla</button>
+                
+                <div class="rule-editor-content">
+                    <!-- Editor Visual (por defecto) -->
+                    <div id="visual-editor" class="editor-mode">
+                        <!-- Aquí va el editor visual que definiste antes -->
+                    </div>
+                    
+                    <!-- Editor de Código -->
+                    <div id="code-editor" class="editor-mode" style="display:none">
+                        <textarea id="rule-json" class="code-editor" placeholder="Escribe o pega tu regla JSON aquí..."></textarea>
+                        <div class="code-editor-actions">
+                            <button class="btn btn-success">✅ Guardar</button>
+                            <button class="btn btn-secondary">📋 Copiar JSON</button>
+                            <button class="btn btn-info">🔍 Validar Sintaxis</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pestaña: Testing -->
+        <div id="testing" class="tab-panel">
+            <div class="testing-toolbar">
+                <h3>🧪 Testing de Reglas</h3>
+                <button class="btn btn-primary">▶️ Ejecutar Test</button>
+                <button class="btn btn-secondary">📄 Generar Reporte</button>
+            </div>
+            
+            <div class="test-scenario">
+                <h4>Escenario de Prueba:</h4>
+                <div class="test-data">
+                    <label>Datos de Factura:</label>
+                    <textarea class="test-input" placeholder='{"vendor_sku": "SKU123", "vendor_id": "V001"}'></textarea>
+                    
+                    <label>Datos de Orden:</label>
+                    <textarea class="test-input" placeholder='{"vendor_id": "V001", "details": [...]}'></textarea>
+                    
+                    <label>Datos de Ofertas:</label>
+                    <textarea class="test-input" placeholder='[{"vendor_id": "V001", "vendor_sku": "SKU123"}]'></textarea>
+                </div>
+                
+                <div class="test-results">
+                    <h4>Resultado Esperado vs Real:</h4>
+                    <div class="result-comparison">
+                        <!-- Se llena dinámicamente con resultados -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pestaña: Performance -->
+        <div id="performance" class="tab-panel">
+            <div class="performance-metrics">
+                <div class="metric-card">
+                    <h4>⏱️ Tiempo Promedio</h4>
+                    <div class="metric-value">2.3ms</div>
+                </div>
+                <div class="metric-card">
+                    <h4>🔥 Reglas Más Lentas</h4>
+                    <div class="slow-rules-list">
+                        <div class="slow-rule">factura_sku_matching: 5.2ms</div>
+                        <div class="slow-rule">vendor_validation: 1.8ms</div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <h4>📊 Ejecuciones/min</h4>
+                    <div class="metric-value">127</div>
                 </div>
             </div>
         </div>
@@ -482,41 +559,7 @@ class FormReactivity {
 </div>
 ```
 
-### 🎛️ Funcionalidades por Interfaz
-
-#### **Para Usuario Final:**
-```javascript
-// Panel simplificado - Solo toggles
-<div class="simple-rules-panel">
-    <h3>Configuración de Reglas</h3>
-    
-    <div class="rule-toggle">
-        <label>
-            <input type="checkbox" checked> 
-            Búsqueda automática de SKU
-        </label>
-        <small>Busca automáticamente SKUs en órdenes relacionadas</small>
-    </div>
-    
-    <div class="rule-toggle">
-        <label>
-            <input type="checkbox"> 
-            Validación estricta de vendor
-        </label>
-        <small>Requiere que todos los vendors existan en ofertas</small>
-    </div>
-    
-    <div class="rule-toggle">
-        <label>
-            <input type="checkbox" checked> 
-            Cálculos automáticos
-        </label>
-        <small>Calcula totales automáticamente al cambiar cantidades</small>
-    </div>
-</div>
-```
-
-#### **Para Desarrollador:**
+### 🎛️ Editor Visual de Reglas:
 ```javascript
 // Editor visual de reglas
 <div class="rule-visual-editor">
@@ -608,63 +651,136 @@ class RulesDebugger {
     constructor() {
         this.executionLog = [];
         this.activeRules = new Map();
-        this.userRole = 'developer'; // 'user', 'admin', 'developer'
+        this.mode = 'development'; // Solo modo desarrollo
     }
     
     showDebugPanel() {
-        // Panel adaptado según rol del usuario
-        if (this.userRole === 'user') {
-            this.showSimplePanel();
-        } else {
-            this.showAdvancedPanel();
-        }
-    }
-    
-    showSimplePanel() {
-        // Panel simplificado para usuarios finales
-        // - Solo toggles de reglas
-        // - Mensajes en lenguaje natural
-        // - Sin detalles técnicos
-    }
-    
-    showAdvancedPanel() {
         // Panel completo para desarrolladores
-        // - Editor de reglas
-        // - Logs detallados
-        // - Datos de contexto
+        this.showDeveloperPanel();
+    }
+    
+    showDeveloperPanel() {
+        // Panel completo con todas las funcionalidades
+        // - Editor visual + código
+        // - Logs detallados con contexto
+        // - Testing en vivo
         // - Performance metrics
+        // - Exportar/Importar configuraciones
     }
 }
 ```
 
-### 🔐 Control de Acceso:
+### 🔧 Capacidades de Desarrollo Avanzado:
+
+#### **🎨 Editor Visual Drag & Drop:**
 ```javascript
-const USER_PERMISSIONS = {
-    user: {
-        canToggleRules: true,
-        canCreateRules: false,
-        canEditRules: false,
-        canDeleteRules: false,
-        canViewLogs: true,
-        canViewAdvancedLogs: false
+// Crear reglas visualmente sin tocar JSON
+const visualRuleBuilder = {
+    // Arrastar y soltar condiciones
+    dragDropConditions: true,
+    
+    // Pre-visualización en tiempo real
+    livePreview: true,
+    
+    // Validación visual de sintaxis
+    visualValidation: true,
+    
+    // Generación automática de JSON
+    autoJsonGeneration: true
+};
+```
+
+#### **💻 Editor de Código Profesional:**
+```javascript
+// Editor con todas las características IDE
+const codeEditor = {
+    syntaxHighlighting: true,
+    autoCompletion: true,
+    errorHighlighting: true,
+    jsonValidation: true,
+    formatOnSave: true,
+    intelliSense: true
+};
+```
+
+#### **🧪 Testing Framework Integrado:**
+```javascript
+// Testing completo de reglas
+const testingFramework = {
+    // Ejecutar tests con datos mock
+    mockDataTesting: true,
+    
+    // Tests automáticos de regresión
+    regressionTesting: true,
+    
+    // Comparación resultado esperado vs real
+    resultComparison: true,
+    
+    // Reportes de cobertura de reglas
+    coverageReports: true,
+    
+    // Tests de performance
+    performanceTesting: true
+};
+```
+
+#### **🔍 Debug Profundo:**
+```javascript
+const advancedDebugging = {
+    // Breakpoints en reglas
+    ruleBreakpoints: true,
+    
+    // Inspección de variables en tiempo real
+    variableInspection: true,
+    
+    // Stack trace de ejecución de reglas
+    executionStackTrace: true,
+    
+    // Highlighting de elementos afectados
+    elementHighlighting: true,
+    
+    // Timeline de ejecución
+    executionTimeline: true
+};
+```
+
+### 🔧 Configuración de Desarrollo:
+```javascript
+const DEVELOPMENT_CONFIG = {
+    // Modo desarrollador siempre activo
+    mode: 'development',
+    
+    // Todas las herramientas habilitadas
+    tools: {
+        visualEditor: true,
+        codeEditor: true,
+        splitView: true,
+        liveTesting: true,
+        performanceProfiler: true,
+        advancedDebugging: true,
+        hotReload: true,
+        exportImport: true,
+        ruleVersioning: true,
+        backupRestore: true
     },
     
-    admin: {
-        canToggleRules: true,
-        canCreateRules: false,
-        canEditRules: true,  // Solo parámetros
-        canDeleteRules: false,
-        canViewLogs: true,
-        canViewAdvancedLogs: true
+    // Debug completo
+    debug: {
+        enabled: true,
+        logLevel: 'verbose',
+        showExecutionTime: true,
+        highlightAffectedElements: true,
+        showDataContext: true,
+        recordExecutionHistory: true,
+        enableBreakpoints: true
     },
     
-    developer: {
-        canToggleRules: true,
-        canCreateRules: true,
-        canEditRules: true,
-        canDeleteRules: true,
-        canViewLogs: true,
-        canViewAdvancedLogs: true
+    // Performance monitoring
+    performance: {
+        trackExecutionTime: true,
+        memoryUsageMonitoring: true,
+        slowRuleDetection: true,
+        optimizationSuggestions: true
     }
 };
 ```
