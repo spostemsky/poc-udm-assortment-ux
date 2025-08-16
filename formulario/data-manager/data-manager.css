@@ -39,7 +39,8 @@ body {
     display: grid;
     grid-template-columns: 280px 1fr;
     gap: 1.5rem;
-    height: calc(100vh - 120px);
+    height: calc(100vh - 140px);
+    overflow: hidden;
 }
 
 .sidebar {
@@ -167,8 +168,11 @@ body {
     background: white;
     border-radius: 16px;
     box-shadow: 0 4px 24px rgba(0,0,0,0.06);
-    min-height: calc(100vh - 180px);
+    height: 100%;
     border: 1px solid rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .content-header {
@@ -179,6 +183,7 @@ body {
     align-items: center;
     background: linear-gradient(90deg, #fafbff 0%, #f8f9ff 100%);
     border-radius: 16px 16px 0 0;
+    flex-shrink: 0;
 }
 
 .content-header h2 {
@@ -195,12 +200,17 @@ body {
 
 .content-body {
     padding: 1.5rem;
+    height: calc(100vh - 280px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .entity-tabs {
     display: flex;
     border-bottom: 1px solid #eee;
     margin-bottom: 1rem;
+    flex-shrink: 0;
 }
 
 .tab {
@@ -221,10 +231,41 @@ body {
     background: #f8f9fa;
 }
 
+/* Contenedor scrolleable para la tabla */
+#data-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid #f0f0f0;
+    background: #fafbff;
+}
+
+/* Scroll personalizado */
+#data-content::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+#data-content::-webkit-scrollbar-track {
+    background: #f1f3f4;
+    border-radius: 4px;
+}
+
+#data-content::-webkit-scrollbar-thumb {
+    background: #c1c8e4;
+    border-radius: 4px;
+}
+
+#data-content::-webkit-scrollbar-thumb:hover {
+    background: #a8b5d1;
+}
+
 .data-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 1rem;
+    margin: 0;
+    min-width: 800px; /* Ancho mínimo para evitar aplastamiento */
 }
 
 .data-table th,
@@ -240,6 +281,8 @@ body {
     color: #2c3e50;
     position: sticky;
     top: 0;
+    z-index: 10;
+    border-bottom: 2px solid #e9ecef;
 }
 
 .data-table tr:hover {
@@ -258,8 +301,13 @@ body {
 
 .empty-state {
     text-align: center;
-    padding: 3rem;
+    padding: 3rem 1rem;
     color: #6c757d;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
 .empty-state-icon {
@@ -372,18 +420,22 @@ body {
 @media (max-width: 768px) {
     .main-content {
         grid-template-columns: 1fr;
-        height: auto;
+        height: calc(100vh - 120px);
+        gap: 1rem;
     }
     
     .sidebar {
         position: relative;
         top: auto;
-        margin-bottom: 1rem;
+        height: auto;
+        max-height: 200px;
+        overflow-y: auto;
     }
     
     .sidebar .actions {
         flex-direction: row;
         flex-wrap: wrap;
+        gap: 0.5rem;
     }
     
     .content-header .actions {
@@ -395,6 +447,12 @@ body {
         flex-direction: column;
         align-items: flex-start;
         gap: 1rem;
+        padding: 1rem;
+    }
+    
+    .content-body {
+        height: calc(100vh - 350px);
+        padding: 1rem;
     }
     
     .header {
@@ -403,5 +461,9 @@ body {
     
     .header h1 {
         font-size: 1.5rem;
+    }
+    
+    .data-table {
+        min-width: 600px;
     }
 }
