@@ -443,6 +443,11 @@ class DataManager extends EventTarget {
                 existingDataCount: existingData.length
             });
             
+            // DEBUG: Mostrar valores de todos los campos únicos
+            uniqueFields.forEach(field => {
+                console.log(`  📋 Campo único '${field}' = "${record[field]}" (tipo: ${typeof record[field]})`);
+            });
+            
             const isDuplicate = uniqueFields.some(field => {
                 const recordValue = record[field];
                 console.log(`  • Verificando campo '${field}': "${recordValue}"`);
