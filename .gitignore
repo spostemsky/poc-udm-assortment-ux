@@ -38,3 +38,6 @@ out/
 ### OS generated files ###
 .DS_Store
 .DS_Store?
+
+### Internal documentation ###
+BUSINESS_RULES_ENGINE.md
