@@ -294,16 +294,19 @@ body {
 
 .record-actions {
     display: flex;
-    gap: 0.25rem;
-    flex-wrap: wrap;
+    gap: 0.2rem;
+    flex-wrap: nowrap; /* ✅ SOLUCION: Evitar que botones se envuelvan */
     justify-content: center;
     align-items: center;
+    white-space: nowrap; /* ✅ Evitar salto de línea */
 }
 
 /* ✅ SOLUCION: Alineación específica para columna de Acciones */
 .data-table th:last-child,
 .data-table td:last-child {
     text-align: center; /* Centra tanto el header "Acciones" como los botones */
+    min-width: 120px; /* ✅ Ancho mínimo para asegurar espacio para 3 botones */
+    width: 120px; /* ✅ Ancho fijo para consistencia */
 }
 
 .btn-sm {
@@ -316,16 +319,17 @@ body {
 .btn-icon {
     background: transparent;
     border: none;
-    padding: 0.5rem;
+    padding: 0.4rem; /* ✅ Reducido de 0.5rem para más compacto */
     border-radius: 6px;
     cursor: pointer;
-    font-size: 1rem;
+    font-size: 0.9rem; /* ✅ Reducido de 1rem para más compacto */
     transition: all 0.2s ease;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 32px;
-    min-height: 32px;
+    min-width: 28px; /* ✅ Reducido de 32px para más compacto */
+    min-height: 28px; /* ✅ Reducido de 32px para más compacto */
+    flex-shrink: 0; /* ✅ Evitar que se compriman */
 }
 
 .btn-icon:hover {

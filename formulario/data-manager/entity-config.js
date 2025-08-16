@@ -25,7 +25,8 @@ const ENTITY_CONFIG = {
                     label: "Id", 
                     type: "text", 
                     required: true,
-                    unique: true
+                    unique: true,
+                    showColumn: false
                 },
                 { 
                     key: "external_id", 
