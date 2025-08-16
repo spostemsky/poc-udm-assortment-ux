@@ -88,7 +88,9 @@ const ENTITY_CONFIG = {
                 { 
                     key: "sapOrderId", 
                     label: "SAP Order ID", 
-                    type: "text"
+                    type: "number",
+                    required: true,
+                    unique: true
                 },
                 { 
                     key: "siteId", 

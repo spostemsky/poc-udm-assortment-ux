@@ -436,40 +436,18 @@ class DataManager extends EventTarget {
             let duplicateField = null;
             let duplicateValue = null;
             
-            // DEBUG: Log de validación de únicos
-            console.log(`🔍 Validando únicos para ${entityType}:`, {
-                record: record,
-                uniqueFields: uniqueFields,
-                existingDataCount: existingData.length
-            });
-            
-            // DEBUG: Mostrar valores de todos los campos únicos
-            uniqueFields.forEach(field => {
-                console.log(`  📋 Campo único '${field}' = "${record[field]}" (tipo: ${typeof record[field]})`);
-            });
-            
             const isDuplicate = uniqueFields.some(field => {
                 const recordValue = record[field];
-                console.log(`  • Verificando campo '${field}': "${recordValue}"`);
+                if (!recordValue) return false; // Si no tiene valor, no es duplicado
                 
-                if (!recordValue) {
-                    console.log(`    → Valor vacío, saltando validación`);
-                    return false; // Si no tiene valor, no es duplicado
-                }
-                
-                const isFieldDuplicate = existingData.some(existingRecord => {
-                    const existingValue = existingRecord[field];
-                    console.log(`    → Comparando con existente: "${existingValue}"`);
-                    return existingValue === recordValue;
-                });
+                const isFieldDuplicate = existingData.some(existingRecord => 
+                    existingRecord[field] === recordValue
+                );
                 
                 if (isFieldDuplicate) {
                     duplicateField = field;
                     duplicateValue = recordValue;
-                    console.log(`    ❌ DUPLICADO ENCONTRADO en '${field}': "${recordValue}"`);
                     return true; // Detener búsqueda en el primer duplicado encontrado
-                } else {
-                    console.log(`    ✅ No duplicado en '${field}'`);
                 }
                 
                 return false;
