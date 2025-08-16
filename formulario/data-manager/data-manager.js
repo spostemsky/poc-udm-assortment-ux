@@ -106,6 +106,86 @@ class DataManager {
                 }
             });
         }
+
+        // Configurar tooltips personalizados
+        this.setupCustomTooltips();
+    }
+
+    setupCustomTooltips() {
+        // Usar event delegation para tooltips dinámicos
+        document.addEventListener('mouseenter', (e) => {
+            if (e.target.classList.contains('btn-icon') && e.target.hasAttribute('title')) {
+                this.showTooltip(e.target);
+            }
+        });
+
+        document.addEventListener('mouseleave', (e) => {
+            if (e.target.classList.contains('btn-icon')) {
+                this.hideTooltip(e.target);
+            }
+        });
+    }
+
+    showTooltip(element) {
+        // Remover tooltip nativo
+        const originalTitle = element.getAttribute('title');
+        element.setAttribute('data-title', originalTitle);
+        element.removeAttribute('title');
+
+        // Crear tooltip personalizado
+        const tooltip = document.createElement('div');
+        tooltip.className = 'custom-tooltip';
+        tooltip.textContent = originalTitle;
+
+        // Agregar al elemento
+        element.appendChild(tooltip);
+
+        // Calcular posición inteligente
+        const rect = element.getBoundingClientRect();
+        const tooltipRect = tooltip.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        // Determinar mejor posición
+        let position = 'top'; // Por defecto arriba
+
+        // Si no cabe arriba, ponerlo abajo
+        if (rect.top - tooltipRect.height < 10) {
+            position = 'bottom';
+        }
+
+        // Si no cabe centrado horizontalmente, ajustar
+        const centerX = rect.left + rect.width / 2;
+        const tooltipHalfWidth = tooltipRect.width / 2;
+
+        if (centerX - tooltipHalfWidth < 10) {
+            position = 'right';
+        } else if (centerX + tooltipHalfWidth > viewportWidth - 10) {
+            position = 'left';
+        }
+
+        // Aplicar clase de posición
+        tooltip.className = `custom-tooltip ${position}`;
+
+        // Mostrar con animación
+        setTimeout(() => {
+            tooltip.classList.add('show');
+        }, 10);
+    }
+
+    hideTooltip(element) {
+        // Restaurar título original
+        const originalTitle = element.getAttribute('data-title');
+        if (originalTitle) {
+            element.setAttribute('title', originalTitle);
+            element.removeAttribute('data-title');
+        }
+
+        // Remover tooltip personalizado
+        const tooltip = element.querySelector('.custom-tooltip');
+        if (tooltip) {
+            tooltip.remove();
+        }
     }
 
     // =============================================================================
