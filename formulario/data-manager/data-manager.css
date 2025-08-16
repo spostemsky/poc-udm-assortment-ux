@@ -275,6 +275,7 @@ body {
     text-align: left;
     border-bottom: 1px solid #eee;
     font-size: 0.85rem;
+    vertical-align: middle; /* ✅ SOLUCION: Alineación vertical al centro */
 }
 
 .data-table th {
@@ -297,6 +298,12 @@ body {
     flex-wrap: wrap;
     justify-content: center;
     align-items: center;
+}
+
+/* ✅ SOLUCION: Alineación específica para columna de Acciones */
+.data-table th:last-child,
+.data-table td:last-child {
+    text-align: center; /* Centra tanto el header "Acciones" como los botones */
 }
 
 .btn-sm {

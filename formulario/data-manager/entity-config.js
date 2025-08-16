@@ -118,6 +118,60 @@ const ENTITY_CONFIG = {
                 autoGenerateId: false,
                 confirmDelete: true
             }
+        },
+        equivalencias: {
+            // Información de display
+            displayName: "Equivalencias",
+            displayNameSingular: "Equivalencia",
+            icon: "📋",
+            
+            // Configuración de campos para la tabla
+            fields: [
+                { 
+                    key: "uuid", 
+                    label: "UUID", 
+                    type: "text", 
+                    required: true,
+                    unique: true
+                },
+                { 
+                    key: "identifier", 
+                    label: "Identificador", 
+                    type: "text"
+                },
+                { 
+                    key: "vendor_id", 
+                    label: "Vendor ID", 
+                    type: "text"
+                },
+                { 
+                    key: "type", 
+                    label: "Tipo", 
+                    type: "text"
+                },
+                { 
+                    key: "equivalences", 
+                    label: "Equivalencias", 
+                    type: "array", 
+                    display: "count"
+                }
+            ],
+            
+            // Template para nuevos registros
+            template: {
+                uuid: "",
+                identifier: "",
+                vendor_id: "",
+                type: "",
+                equivalences: []
+            },
+
+            // Configuraciones específicas de la entidad
+            config: {
+                validateOnSave: true,
+                autoGenerateId: false,
+                confirmDelete: true
+            }
         }
     }
 };
