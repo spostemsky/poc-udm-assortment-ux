@@ -136,7 +136,7 @@ const ENTITY_CONFIG = {
             // Información de display
             displayName: "Equivalencias",
             displayNameSingular: "Equivalencia",
-            icon: "📋",
+            icon: "⚖️",
             
             // Configuración de campos para la tabla
             fields: [
@@ -165,7 +165,7 @@ const ENTITY_CONFIG = {
                 { 
                     key: "equivalences", 
                     label: "Equivalencias", 
-                    type: "array", 
+                    type: "array",
                     display: "count"
                 }
             ],
