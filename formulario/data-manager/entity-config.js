@@ -21,6 +21,13 @@ const ENTITY_CONFIG = {
             // Configuración de campos para la tabla
             fields: [
                 { 
+                    key: "id", 
+                    label: "Id", 
+                    type: "text", 
+                    required: true,
+                    unique: true
+                },
+                { 
                     key: "external_id", 
                     label: "EXTERNAL ID", 
                     type: "text", 
@@ -30,7 +37,9 @@ const ENTITY_CONFIG = {
                 { 
                     key: "sap_order_id", 
                     label: "Nro Orden", 
-                    type: "number"
+                    type: "number",
+                    required: true,
+                    unique: true
                 },
                 { 
                     key: "vendor_name", 
@@ -54,6 +63,7 @@ const ENTITY_CONFIG = {
             template: {
                 external_id: "",
                 sap_order_id: null,
+                internal_hash: "",
                 inner_id: null,
                 id: "",
                 order_id: "",

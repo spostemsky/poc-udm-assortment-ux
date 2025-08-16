@@ -593,12 +593,15 @@ class DataManager extends EventTarget {
     generateDynamicTable(data, entityType) {
         const config = this.entityConfig[entityType];
         
+        // Filtrar solo los campos que deben mostrarse en la tabla
+        const visibleFields = config.fields.filter(field => field.showColumn !== false);
+        
         // Generar headers
-        const headers = config.fields.map(field => `<th>${field.label}</th>`).join('');
+        const headers = visibleFields.map(field => `<th>${field.label}</th>`).join('');
         
         // Generar filas
         const rows = data.map((record, index) => {
-            const cells = config.fields.map(field => {
+            const cells = visibleFields.map(field => {
                 let cellValue = this.formatCellValue(record[field.key], field);
                 return `<td>${cellValue}</td>`;
             }).join('');
