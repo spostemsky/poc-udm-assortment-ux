@@ -58,9 +58,6 @@
                 </div>
 
                 <div class="content-body">
-                    <!-- Contenedor de Alertas -->
-                    <div id="alerts-container"></div>
-
                     <!-- Tabs de Entidades (se generan dinámicamente) -->
                     <div class="entity-tabs">
                         <!-- Se genera automáticamente por JavaScript basado en entity-config.js -->
@@ -118,6 +115,15 @@
 
     <!-- Input de archivo oculto para upload -->
     <input type="file" id="hidden-file-input" accept=".json" multiple style="display: none;">
+
+    <!-- Snackbar para mensajes -->
+    <div id="snackbar" class="snackbar">
+        <div class="snackbar-content">
+            <div class="snackbar-icon"></div>
+            <div class="snackbar-message"></div>
+            <button class="snackbar-close" onclick="hideSnackbar()">×</button>
+        </div>
+    </div>
 
     <!-- Scripts -->
     <!-- IMPORTANTE: El orden de carga es crucial -->

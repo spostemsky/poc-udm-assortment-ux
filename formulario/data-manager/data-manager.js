@@ -707,7 +707,7 @@ class DataManager {
         data.splice(index, 1);
         this.saveData(this.currentEntity, data);
         this.renderDataTable(this.currentEntity);
-        this.showAlert('success', `✅ ${config.displayNameSingular} eliminado exitosamente`);
+        this.showAlert('success', `${config.displayNameSingular} eliminado exitosamente`);
     }
 
     closeModal() {
@@ -796,21 +796,54 @@ class DataManager {
     }
 
     showAlert(type, message) {
-        const container = document.getElementById('alerts-container');
-        if (!container) return;
+        this.showSnackbar(type, message);
+    }
 
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type}`;
-        alertDiv.textContent = message;
+    showSnackbar(type, message) {
+        const snackbar = document.getElementById('snackbar');
+        const icon = document.querySelector('.snackbar-icon');
+        const messageEl = document.querySelector('.snackbar-message');
         
-        container.appendChild(alertDiv);
+        if (!snackbar || !icon || !messageEl) {
+            console.error('Snackbar elements not found');
+            return;
+        }
+
+        // Ocultar snackbar actual si está visible
+        this.hideSnackbar();
+
+        // Configurar icono según tipo
+        const icons = {
+            success: '✅',
+            error: '❌',
+            warning: '⚠️',
+            info: 'ℹ️'
+        };
+
+        icon.textContent = icons[type] || icons.info;
+        messageEl.textContent = message;
+
+        // Aplicar clase de tipo
+        snackbar.className = `snackbar ${type}`;
         
-        // Auto-remover después de 5 segundos
+        // Mostrar con animación
         setTimeout(() => {
-            if (alertDiv.parentNode) {
-                alertDiv.parentNode.removeChild(alertDiv);
-            }
+            snackbar.classList.add('show');
+        }, 10);
+
+        // Auto-ocultar después de 5 segundos
+        clearTimeout(this.snackbarTimeout);
+        this.snackbarTimeout = setTimeout(() => {
+            this.hideSnackbar();
         }, 5000);
+    }
+
+    hideSnackbar() {
+        const snackbar = document.getElementById('snackbar');
+        if (snackbar) {
+            snackbar.classList.remove('show');
+            clearTimeout(this.snackbarTimeout);
+        }
     }
 
     exportData(entityType) {
@@ -931,6 +964,10 @@ function saveRecord() {
 
 function openFileUpload() {
     if (dataManager) dataManager.openFileUpload();
+}
+
+function hideSnackbar() {
+    if (dataManager) dataManager.hideSnackbar();
 }
 
 // =============================================================================
