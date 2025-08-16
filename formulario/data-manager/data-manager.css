@@ -432,6 +432,12 @@ body {
     color: #721c24;
 }
 
+.alert-warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+}
+
 .modal {
     display: none;
     position: fixed;

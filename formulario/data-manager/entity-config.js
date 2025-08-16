@@ -24,7 +24,8 @@ const ENTITY_CONFIG = {
                     key: "external_id", 
                     label: "EXTERNAL ID", 
                     type: "text", 
-                    required: true
+                    required: true,
+                    unique: true
                 },
                 { 
                     key: "sap_order_id", 
@@ -81,7 +82,8 @@ const ENTITY_CONFIG = {
                     key: "id", 
                     label: "ID", 
                     type: "text", 
-                    required: true
+                    required: true,
+                    unique: true
                 },
                 { 
                     key: "sapOrderId", 
@@ -191,7 +193,7 @@ productos: {
     icon: "🛍️",
     
     fields: [
-        { key: "codigo", label: "Código", type: "text", required: true },
+        { key: "codigo", label: "Código", type: "text", required: true, unique: true },
         { key: "nombre", label: "Nombre", type: "text", required: true },
         { key: "precio", label: "Precio", type: "currency" },
         { key: "stock", label: "Stock", type: "number" },

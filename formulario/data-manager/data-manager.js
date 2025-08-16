@@ -256,17 +256,31 @@ class DataManager {
         let totalRecordsAdded = 0;
 
         try {
+            let totalDuplicates = 0;
+            let totalInvalid = 0;
+            
             for (const file of files) {
                 const result = await this.loadFileFromInput(entityType, file);
                 loadedFiles.push(result);
                 totalRecordsAdded += result.recordsAdded;
+                totalDuplicates += result.duplicateCount || 0;
+                totalInvalid += result.invalidCount || 0;
             }
 
             const config = this.entityConfig[entityType];
-            this.showAlert('success', 
-                `✅ ${loadedFiles.length} archivo(s) cargado(s) exitosamente!\n` +
-                `${totalRecordsAdded} registro(s) agregado(s) a ${config.displayName}`
-            );
+            let message = `✅ ${loadedFiles.length} archivo(s) procesado(s)!\n`;
+            message += `${totalRecordsAdded} registro(s) agregado(s) a ${config.displayName}`;
+            
+            if (totalDuplicates > 0) {
+                message += `\n⚠️ ${totalDuplicates} registro(s) omitido(s) por duplicados`;
+            }
+            
+            if (totalInvalid > 0) {
+                message += `\n❌ ${totalInvalid} registro(s) omitido(s) por campos faltantes`;
+            }
+            
+            const alertType = (totalDuplicates > 0 || totalInvalid > 0) ? 'warning' : 'success';
+            this.showAlert(alertType, message);
 
             this.refreshData();
 
@@ -294,8 +308,12 @@ class DataManager {
                     let newData = Array.isArray(fileData) ? fileData : [fileData];
                     
                     // Validar datos si está configurado
+                    let validationResult;
                     if (this.entityConfig[entityType].config.validateOnSave) {
-                        newData = this.validateEntityData(entityType, newData);
+                        validationResult = this.validateEntityData(entityType, newData);
+                        newData = validationResult.validRecords;
+                    } else {
+                        validationResult = { validRecords: newData, duplicateCount: 0, invalidCount: 0 };
                     }
                     
                     // Agregar a los datos existentes
@@ -309,7 +327,10 @@ class DataManager {
                     resolve({
                         fileName,
                         recordsAdded: newData.length,
-                        totalRecords: updatedData.length
+                        totalRecords: updatedData.length,
+                        duplicateCount: validationResult.duplicateCount,
+                        invalidCount: validationResult.invalidCount,
+                        duplicateDetails: validationResult.duplicateDetails
                     });
                     
                 } catch (error) {
@@ -325,8 +346,19 @@ class DataManager {
     validateEntityData(entityType, dataArray) {
         const config = this.entityConfig[entityType];
         const requiredFields = config.fields.filter(field => field.required).map(field => field.key);
+        const uniqueFields = config.fields.filter(field => field.unique).map(field => field.key);
         
-        return dataArray.filter(record => {
+        // Obtener datos existentes para validación de únicos
+        const existingData = this.getData(entityType);
+        
+        const validationResult = {
+            validRecords: [],
+            duplicateCount: 0,
+            invalidCount: 0,
+            duplicateDetails: []
+        };
+        
+        dataArray.forEach(record => {
             // Verificar campos requeridos
             const hasRequiredFields = requiredFields.every(field => 
                 record.hasOwnProperty(field) && record[field] !== null && record[field] !== ""
@@ -334,11 +366,45 @@ class DataManager {
             
             if (!hasRequiredFields) {
                 console.warn(`Registro omitido por campos requeridos faltantes:`, record);
-                return false;
+                validationResult.invalidCount++;
+                return;
             }
             
-            return true;
+            // Verificar campos únicos contra datos existentes
+            const isDuplicate = uniqueFields.some(field => {
+                const recordValue = record[field];
+                if (!recordValue) return false; // Si no tiene valor, no es duplicado
+                
+                return existingData.some(existingRecord => 
+                    existingRecord[field] === recordValue
+                );
+            });
+            
+            if (isDuplicate) {
+                // Encontrar qué campo es duplicado para el reporte
+                const duplicateField = uniqueFields.find(field => {
+                    const recordValue = record[field];
+                    return recordValue && existingData.some(existingRecord => 
+                        existingRecord[field] === recordValue
+                    );
+                });
+                
+                validationResult.duplicateCount++;
+                validationResult.duplicateDetails.push({
+                    field: duplicateField,
+                    value: record[duplicateField],
+                    record: record
+                });
+                
+                console.warn(`Registro omitido por duplicado en campo '${duplicateField}':`, record[duplicateField]);
+                return;
+            }
+            
+            // Si pasa todas las validaciones, agregarlo
+            validationResult.validRecords.push(record);
         });
+        
+        return validationResult;
     }
 
     addFileToIndex(entityType, fileName, recordCount) {
