@@ -921,6 +921,15 @@ class DataManager extends EventTarget {
         
         // Log para desarrollo
         console.log(`🔔 Evento emitido: ${eventType}`, detail);
+        
+        // DEBUGGING: También emitir en window para cross-frame communication
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage({
+                type: 'dataManagerEvent',
+                eventType,
+                detail
+            }, '*');
+        }
     }
 
     /**

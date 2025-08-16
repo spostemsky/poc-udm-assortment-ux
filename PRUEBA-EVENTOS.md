@@ -135,19 +135,51 @@ Resultado esperado en Formulario:
 
 ### 🔧 Debugging
 
+#### **🚨 SI NO FUNCIONA LA SINCRONIZACIÓN:**
+
+##### **1. Ejecutar diagnóstico completo:**
+```javascript
+// En la consola del FORMULARIO:
+probarConexionDataManager()
+```
+
+##### **2. Verificar logs esperados:**
+```
+✅ LOGS CORRECTOS:
+🔧 Inicializando integración con Data Manager...
+🔔 Configurando event listeners del Data Manager...
+✅ Event listeners configurados correctamente
+
+❌ LOGS DE PROBLEMA:
+⚠️ Data Manager no disponible todavía
+⚠️ Data Manager no encontrado después de 10 intentos
+❌ Data Manager no tiene método "on"
+```
+
+##### **3. Forzar actualización manual:**
+```javascript
+// En la consola del FORMULARIO:
+actualizarDropdownFacturas()
+```
+
+##### **4. Verificar eventos cross-frame:**
+```
+✅ LOGS DE CROSS-FRAME (si Data Manager está en otra pestaña):
+🔔 Evento cross-frame recibido: facturas:deleted
+📄 Facturas actualizadas via cross-frame: X registros
+```
+
 #### **Comandos útiles en consola:**
 ```javascript
-// Verificar Data Manager
-window.dataManager
+// FORMULARIO:
+probarConexionDataManager()    // Diagnóstico completo
+actualizarDropdownFacturas()   // Forzar actualización
+getDatosFacturas()            // Ver datos en localStorage
 
-// Ver datos actuales
-dataManager.getData('facturas')
-
-// Forzar actualización
-actualizarDropdownFacturas()
-
-// Ver listeners configurados
-dataManager._events || dataManager.eventListeners
+// DATA MANAGER:
+window.dataManager           // Verificar instancia
+dataManager.getData('facturas') // Ver datos actuales
+dataManager.emitEvent('test', {}) // Probar emisión
 ```
 
 ### 🎊 Resultado Esperado Final

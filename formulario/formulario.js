@@ -128,7 +128,13 @@ function configurarEventListenersDataManager() {
         return;
     }
     
-    console.log('🔔 Configurando event listeners del Data Manager...');
+    console.log('🔔 Configurando event listeners del Data Manager...', window.dataManager);
+    
+    // DEBUGGING: Verificar que dataManager tiene los métodos necesarios
+    if (typeof window.dataManager.on !== 'function') {
+        console.error('❌ Data Manager no tiene método "on". Versión incompatible?');
+        return;
+    }
     
     // Escuchar actualizaciones de facturas (carga, edición, guardado)
     dataManager.on('facturas:updated', function(event) {
@@ -191,11 +197,41 @@ function configurarEventListenersDataManager() {
  * Intenta configurar los event listeners, con reintentos si el Data Manager no está listo
  */
 function inicializarIntegracionDataManager() {
+    console.log('🔧 Inicializando integración con Data Manager...');
+    
     // Intentar configuración inmediata
     if (window.dataManager) {
+        console.log('✅ Data Manager encontrado inmediatamente');
         configurarEventListenersDataManager();
         return;
     }
+    
+    // NUEVA ESTRATEGIA: Escuchar mensajes cross-frame para casos donde Data Manager está en otra ventana
+    window.addEventListener('message', function(event) {
+        if (event.data && event.data.type === 'dataManagerEvent') {
+            console.log(`🔔 Evento cross-frame recibido: ${event.data.eventType}`, event.data.detail);
+            
+            // Simular evento local para reutilizar la lógica existente
+            const simulatedEvent = {
+                detail: event.data.detail
+            };
+            
+            // Procesar según el tipo de evento
+            if (event.data.eventType === 'facturas:updated') {
+                console.log(`📄 Facturas actualizadas via cross-frame: ${event.data.detail.recordCount} registros`);
+                actualizarDropdownFacturas();
+            } else if (event.data.eventType === 'facturas:deleted') {
+                console.log(`🗑️ Facturas eliminadas via cross-frame: ${event.data.detail.deletedRecords?.length} registros`);
+                actualizarDropdownFacturas();
+            } else if (event.data.eventType === 'facturas:cleared') {
+                console.log(`🧹 Facturas limpiadas via cross-frame`);
+                actualizarDropdownFacturas([]);
+            } else if (event.data.eventType === 'facturas:loaded') {
+                console.log(`📁 Facturas cargadas via cross-frame: ${event.data.detail.recordsAdded} registros`);
+                actualizarDropdownFacturas();
+            }
+        }
+    });
     
     // Escuchar evento de inicialización del Data Manager
     document.addEventListener('manager:initialized', function(event) {
@@ -213,11 +249,47 @@ function inicializarIntegracionDataManager() {
             configurarEventListenersDataManager();
             clearInterval(intervalo);
         } else if (intentos >= maxIntentos) {
-            console.log('⚠️ Data Manager no encontrado después de 10 intentos');
+            console.log('⚠️ Data Manager no encontrado después de 10 intentos, usando solo cross-frame messaging');
             clearInterval(intervalo);
         }
     }, 1000);
+    
+    console.log('🔄 Cross-frame messaging configurado para recibir eventos del Data Manager');
 }
+
+/**
+ * Función de debugging para probar la conexión con Data Manager
+ * Llamar desde la consola: probarConexionDataManager()
+ */
+function probarConexionDataManager() {
+    console.log('🔍 DIAGNÓSTICO DE CONEXIÓN DATA MANAGER:');
+    console.log('1. ¿Existe window.dataManager?', !!window.dataManager);
+    
+    if (window.dataManager) {
+        console.log('2. Tipo de dataManager:', typeof window.dataManager);
+        console.log('3. ¿Tiene método "on"?', typeof window.dataManager.on === 'function');
+        console.log('4. ¿Tiene método "getData"?', typeof window.dataManager.getData === 'function');
+        
+        try {
+            const facturas = window.dataManager.getData('facturas');
+            console.log('5. Facturas en Data Manager:', facturas?.length || 0);
+        } catch (error) {
+            console.log('5. Error obteniendo facturas:', error.message);
+        }
+    }
+    
+    const facturas = getDatosFacturas();
+    console.log('6. Facturas en localStorage:', facturas?.length || 0);
+    
+    const selector = document.getElementById('invoice-select');
+    console.log('7. Opciones en selector:', selector?.options?.length || 0);
+    
+    console.log('8. Para forzar actualización: actualizarDropdownFacturas()');
+}
+
+// Hacer disponible globalmente para debugging
+window.probarConexionDataManager = probarConexionDataManager;
+window.actualizarDropdownFacturas = actualizarDropdownFacturas;
 
 function mostrarLoading() {
     document.getElementById('loading-overlay').style.display = 'flex';
