@@ -352,15 +352,17 @@ class FormReactivity {
 ## 🎮 Interfaz de Desarrollo
 
 ### 🔧 Herramientas de Desarrollo:
+- ✅ **Modal Guiado Paso a Paso** - Crear reglas sin conocimiento técnico
+- ✅ **Detección Dinámica de Campos** - Inspecciona datos reales, no configuración
 - ✅ **Editor Visual Drag & Drop** - Crear reglas sin tocar código JSON
 - ✅ **Editor de Código** - Edición directa de JSON con validación sintáctica
+- ✅ **Import/Export de Reglas** - Compartir reglas individuales o paquetes completos
+- ✅ **Estado Interno** - Manejo de comportamientos dentro de la misma entidad
 - ✅ **Testing en Vivo** - Probar reglas con datos reales inmediatamente
 - ✅ **Debug Avanzado** - Logs detallados, contexto y paso a paso
 - ✅ **Performance Profiler** - Métricas de rendimiento y optimización
 - ✅ **Activar/Desactivar** - Toggle instantáneo para testing
-- ✅ **Exportar/Importar** - Compartir configuraciones entre proyectos
 - ✅ **Versionado** - Control de cambios en reglas
-- ✅ **Validación** - Sintaxis y lógica de reglas
 - ✅ **Hot Reload** - Cambios aplicados sin recargar página
 
 ### 🖥️ Interfaz Visual
@@ -423,14 +425,21 @@ class FormReactivity {
         <!-- Pestaña: Editor Visual + Código -->
         <div id="editor" class="tab-panel">
             <div class="editor-toolbar">
-                <button class="btn btn-primary">➕ Nueva Regla</button>
-                <button class="btn btn-secondary">📁 Importar Config</button>
-                <button class="btn btn-secondary">💾 Exportar Config</button>
+                <button class="btn btn-primary" onclick="openRuleCreationModal()">➕ Nueva Regla</button>
+                <div class="import-export-group">
+                    <button class="btn btn-secondary" onclick="importSingleRule()">📥 Importar Regla</button>
+                    <button class="btn btn-secondary" onclick="exportSingleRule()">📤 Exportar Regla</button>
+                    <button class="btn btn-info" onclick="importRulesPackage()">📂 Importar Paquete</button>
+                    <button class="btn btn-info" onclick="exportAllRules()">📦 Exportar Todas</button>
+                </div>
                 <button class="btn btn-warning">🧪 Test All Rules</button>
                 <button class="btn btn-info">🔄 Hot Reload</button>
                 <div class="editor-mode-toggle">
                     <label>
-                        <input type="radio" name="editor-mode" value="visual" checked> 🎨 Visual Builder
+                        <input type="radio" name="editor-mode" value="guided" checked> 🎯 Modal Guiado
+                    </label>
+                    <label>
+                        <input type="radio" name="editor-mode" value="visual"> 🎨 Visual Builder
                     </label>
                     <label>
                         <input type="radio" name="editor-mode" value="code"> 💻 Code Editor
@@ -555,6 +564,235 @@ class FormReactivity {
                 </div>
             </div>
         </div>
+    </div>
+</div>
+```
+
+### 🎯 Modal Guiado para Crear Reglas:
+
+#### **Flujo Completo de Creación sin Conocimiento Técnico:**
+
+**Click "➕ Nueva Regla" → Abre Modal "Crear Nueva Regla de Negocio"**
+
+##### **Paso 1: ¿Qué Quieres Lograr?**
+```html
+<div class="behavior-selection">
+    <h3>Selecciona el comportamiento que deseas:</h3>
+    <div class="behavior-options">
+        <label class="behavior-card">
+            <input type="radio" name="behavior" value="preselect">
+            <div class="card-content">
+                <h4>🎯 Pre-seleccionar campo automáticamente</h4>
+                <p>Cuando se cumple una condición, seleccionar automáticamente un valor</p>
+            </div>
+        </label>
+        
+        <label class="behavior-card">
+            <input type="radio" name="behavior" value="show-hide">
+            <div class="card-content">
+                <h4>👁️ Mostrar/Ocultar elementos</h4>
+                <p>Controlar visibilidad de campos o contenedores</p>
+            </div>
+        </label>
+        
+        <label class="behavior-card">
+            <input type="radio" name="behavior" value="validate">
+            <div class="card-content">
+                <h4>✅ Validar datos entre entidades</h4>
+                <p>Verificar que los datos cumplan reglas de negocio</p>
+            </div>
+        </label>
+        
+        <label class="behavior-card">
+            <input type="radio" name="behavior" value="internal-state">
+            <div class="card-content">
+                <h4>🔄 Control de estado interno</h4>
+                <p>Evitar duplicados, límites, dependencias dentro de la misma entidad</p>
+            </div>
+        </label>
+        
+        <label class="behavior-card">
+            <input type="radio" name="behavior" value="calculate">
+            <div class="card-content">
+                <h4>🧮 Calcular valores automáticamente</h4>
+                <p>Realizar cálculos basados en otros campos</p>
+            </div>
+        </label>
+    </div>
+</div>
+```
+
+##### **Paso 2: ¿Cuándo Debe Ejecutarse?**
+```html
+<div class="trigger-selection">
+    <h3>¿En qué momento quieres que se ejecute esta regla?</h3>
+    <div class="trigger-options">
+        <label><input type="checkbox" value="on_factura_item_load"> Al cargar datos de una factura</label>
+        <label><input type="checkbox" value="on_orden_selection_change"> Al seleccionar una orden diferente</label>
+        <label><input type="checkbox" value="on_vendor_change"> Al cambiar un proveedor</label>
+        <label><input type="checkbox" value="on_sku_change"> Al modificar un SKU</label>
+        <label><input type="checkbox" value="on_sku_selector_open"> Al abrir selector de SKU</label>
+        <label><input type="checkbox" value="on_quantity_change"> Al cambiar cantidades</label>
+        <label><input type="checkbox" value="on_item_add"> Al agregar nuevo item</label>
+        <label><input type="checkbox" value="on_item_remove"> Al eliminar item</label>
+    </div>
+</div>
+```
+
+##### **Paso 3: Condición (Detección Dinámica de Campos):**
+```html
+<div class="condition-builder">
+    <h3>La regla se ejecuta cuando:</h3>
+    
+    <div class="condition-row">
+        <label>Campo origen:</label>
+        <select id="source-entity" onchange="updateAvailableFields(this.value, 'source')">
+            <option value="">Seleccionar entidad...</option>
+            <!-- Opciones dinámicas basadas en entidades con datos -->
+        </select>
+        
+        <select id="source-field" disabled>
+            <option value="">Primero selecciona entidad</option>
+            <!-- Campos detectados dinámicamente de datos reales -->
+        </select>
+        
+        <select id="operator">
+            <option value="equals">Es igual a</option>
+            <option value="contains">Contiene</option>
+            <option value="exists_in">Existe en</option>
+            <option value="not_equals">No es igual a</option>
+            <option value="greater_than">Es mayor que</option>
+            <option value="already_used">Ya fue usado en</option>
+        </select>
+        
+        <select id="target-entity" onchange="updateAvailableFields(this.value, 'target')">
+            <option value="">Comparar con...</option>
+            <!-- Entidades disponibles -->
+        </select>
+        
+        <select id="target-field" disabled>
+            <option value="">Selecciona entidad destino</option>
+            <!-- Campos dinámicos del destino -->
+        </select>
+    </div>
+    
+    <div class="condition-scope" id="internal-state-options" style="display:none">
+        <h4>Alcance para estado interno:</h4>
+        <label><input type="radio" name="scope" value="current_factura"> Dentro de la misma factura</label>
+        <label><input type="radio" name="scope" value="current_orden"> Dentro de la misma orden</label>
+        <label><input type="radio" name="scope" value="current_vendor"> Del mismo proveedor</label>
+        <label><input type="radio" name="scope" value="visible_items"> Elementos visibles en pantalla</label>
+    </div>
+</div>
+```
+
+##### **Paso 4: Acciones a Realizar:**
+```html
+<div class="action-builder">
+    <h3>¿Qué hacer si se cumple la condición?</h3>
+    
+    <div class="action-primary">
+        <label>Acción principal:</label>
+        <select id="primary-action" onchange="updateActionOptions(this.value)">
+            <option value="">Seleccionar acción...</option>
+            <option value="preselect_dropdown">Pre-seleccionar en dropdown</option>
+            <option value="filter_dropdown_options">Filtrar opciones de dropdown</option>
+            <option value="disable_field">Deshabilitar campo</option>
+            <option value="show_container">Mostrar contenedor</option>
+            <option value="hide_container">Ocultar contenedor</option>
+            <option value="show_message">Mostrar mensaje</option>
+            <option value="calculate_value">Calcular valor</option>
+        </select>
+        
+        <div id="action-details">
+            <!-- Campos dinámicos según la acción seleccionada -->
+        </div>
+    </div>
+    
+    <div class="action-additional">
+        <h4>Acciones adicionales:</h4>
+        <label><input type="checkbox" value="disable_field"> Deshabilitar el campo (grisarlo)</label>
+        <label><input type="checkbox" value="show_info_message"> Mostrar mensaje explicativo</label>
+        <label><input type="checkbox" value="highlight_field"> Resaltar el campo visualmente</label>
+        <label><input type="checkbox" value="update_counter"> Actualizar contador de disponibles</label>
+        <label><input type="checkbox" value="log_debug"> Registrar en log para debugging</label>
+    </div>
+</div>
+```
+
+##### **Paso 5: Comportamiento Alternativo:**
+```html
+<div class="else-actions">
+    <h3>¿Qué hacer si NO se cumple la condición?</h3>
+    <div class="else-options">
+        <label><input type="checkbox" value="enable_field"> Mantener campo habilitado</label>
+        <label><input type="checkbox" value="clear_selection"> Limpiar cualquier selección previa</label>
+        <label><input type="checkbox" value="show_all_options"> Mostrar todas las opciones disponibles</label>
+        <label><input type="checkbox" value="hide_info_message"> Ocultar mensajes informativos</label>
+        <label><input type="checkbox" value="reset_counter"> Resetear contadores</label>
+    </div>
+</div>
+```
+
+##### **Paso 6: Configuración Final:**
+```html
+<div class="rule-config">
+    <div class="config-row">
+        <label>Nombre de la regla:</label>
+        <input type="text" id="rule-name" placeholder="Ej: Auto-selección SKU factura-orden">
+    </div>
+    
+    <div class="config-row">
+        <label>Descripción:</label>
+        <textarea id="rule-description" placeholder="Explica qué hace esta regla y cuándo se usa"></textarea>
+    </div>
+    
+    <div class="config-row">
+        <label>Prioridad:</label>
+        <select id="rule-priority">
+            <option value="1">Alta (se ejecuta primero)</option>
+            <option value="2">Media</option>
+            <option value="3">Baja (se ejecuta al final)</option>
+        </select>
+    </div>
+    
+    <div class="config-row">
+        <label>Estado inicial:</label>
+        <label><input type="radio" name="initial-state" value="active" checked> Activa</label>
+        <label><input type="radio" name="initial-state" value="inactive"> Inactiva (para testing)</label>
+    </div>
+</div>
+```
+
+##### **Paso 7: Vista Previa y Confirmación:**
+```html
+<div class="rule-preview">
+    <h3>Resumen de tu regla:</h3>
+    <div class="preview-content">
+        <div class="preview-item">
+            <strong>📋 CUÁNDO:</strong> <span id="preview-triggers">Al cargar datos de una factura</span>
+        </div>
+        <div class="preview-item">
+            <strong>🎯 SI:</strong> <span id="preview-condition">El SKU de la factura coincide con un SKU en la orden</span>
+        </div>
+        <div class="preview-item">
+            <strong>⚡ ENTONCES:</strong>
+            <ul id="preview-actions">
+                <li>Pre-seleccionar el SKU en el selector</li>
+                <li>Deshabilitar el selector</li>
+                <li>Mostrar mensaje explicativo</li>
+            </ul>
+        </div>
+        <div class="preview-item">
+            <strong>🔄 SI NO:</strong> <span id="preview-else">Mantener selector habilitado y limpio</span>
+        </div>
+    </div>
+    
+    <div class="preview-actions">
+        <button class="btn btn-warning" onclick="testRuleWithMockData()">🧪 Probar Regla</button>
+        <button class="btn btn-info" onclick="showGeneratedJSON()">👁️ Ver JSON Generado</button>
+        <button class="btn btn-success" onclick="saveAndActivateRule()">💾 Guardar y Activar</button>
+        <button class="btn btn-secondary" onclick="cancelRuleCreation()">❌ Cancelar</button>
     </div>
 </div>
 ```
@@ -744,6 +982,182 @@ const advancedDebugging = {
 };
 ```
 
+#### **📊 Detección Dinámica de Campos:**
+```javascript
+// Sistema de inspección de datos reales (NO entity-config.js)
+const detectAvailableFields = (entityType) => {
+    const data = localStorage.getItem(entityType);
+    if (!data) return [];
+    
+    const parsedData = JSON.parse(data);
+    const allFields = new Set();
+    
+    // Analizar todos los registros para encontrar TODOS los campos
+    parsedData.forEach(record => {
+        extractAllFields(record, '', allFields);
+    });
+    
+    return Array.from(allFields).sort();
+};
+
+const extractAllFields = (obj, prefix, fieldSet) => {
+    Object.keys(obj).forEach(key => {
+        const fullPath = prefix ? `${prefix}.${key}` : key;
+        fieldSet.add(fullPath);
+        
+        // Si es objeto, explorar recursivamente
+        if (typeof obj[key] === 'object' && obj[key] !== null) {
+            if (Array.isArray(obj[key])) {
+                // Para arrays, analizar el primer elemento
+                if (obj[key].length > 0) {
+                    extractAllFields(obj[key][0], `${fullPath}[]`, fieldSet);
+                }
+            } else {
+                extractAllFields(obj[key], fullPath, fieldSet);
+            }
+        }
+    });
+};
+
+// Resultado: campos reales detectados dinámicamente
+const detectedFields = [
+    "external_id",
+    "sap_order_id",
+    "vendor_name", 
+    "details[].vendor_sku",
+    "details[].quantity",
+    "details[].material_id",
+    "metadata.created_at",
+    "internal_notes.comment"
+    // ... todos los campos que realmente existen
+];
+```
+
+#### **🔄 Manejo de Estado Interno:**
+```javascript
+// Reglas para comportamientos dentro de la misma entidad
+const INTERNAL_STATE_RULES = {
+    "prevent_duplicate_sku_same_factura": {
+        "name": "Prevenir SKU Duplicado en Misma Factura",
+        "description": "Si un SKU ya fue seleccionado en otro item, no mostrarlo en selector actual",
+        "active": true,
+        "priority": 2,
+        
+        "triggers": [
+            "on_sku_selector_open",
+            "on_sku_selection_change",
+            "on_factura_item_added"
+        ],
+        
+        "conditions": [{
+            "id": "check_duplicate_sku_in_factura",
+            "condition": {
+                "type": "internal_state_check",
+                "scope": "current_factura",
+                "check": "field_already_used",
+                "field": "vendor_sku",
+                "exclude_current": true
+            },
+            "actions": [
+                {
+                    "type": "filter_dropdown_options",
+                    "target": "sku_selector_{{current_item_index}}",
+                    "filter_type": "exclude",
+                    "values": "{{already_selected_skus}}"
+                },
+                {
+                    "type": "update_dropdown_placeholder", 
+                    "target": "sku_selector_{{current_item_index}}",
+                    "message": "{{available_count}} SKUs disponibles ({{excluded_count}} ya seleccionados)"
+                }
+            ]
+        }],
+        
+        "variables": {
+            "already_selected_skus": {
+                "type": "dynamic_array",
+                "source": "current_factura.items[].vendor_sku",
+                "exclude": "current_item_index"
+            },
+            "available_count": {
+                "type": "calculated",
+                "formula": "total_sku_options - already_selected_skus.length"
+            }
+        }
+    }
+};
+
+// Nuevos tipos de acciones para estado interno
+const INTERNAL_STATE_ACTIONS = {
+    "filter_dropdown_options": (target, filterType, values) => {
+        // Remover opciones ya seleccionadas dinámicamente
+    },
+    "check_field_duplicates": (scope, field, excludeCurrent) => {
+        // Buscar valores duplicados en el scope
+    },
+    "get_used_values": (scope, field) => {
+        // Obtener valores ya utilizados
+    },
+    "update_counter_display": (target, available, used) => {
+        // Mostrar "X disponibles, Y usados"
+    },
+    "reevaluate_all_selectors": (scope) => {
+        // Actualizar todos los selectores del scope
+    }
+};
+```
+
+#### **📥📤 Import/Export de Reglas:**
+```javascript
+// Funcionalidades de compartir reglas entre desarrolladores
+const ruleImportExport = {
+    // Exportar regla individual
+    exportSingleRule: (ruleId) => {
+        const rule = businessRules[ruleId];
+        const jsonData = JSON.stringify(rule, null, 2);
+        downloadJSON(jsonData, `rule_${ruleId}_${timestamp}.json`);
+    },
+    
+    // Importar regla desde archivo
+    importSingleRule: () => {
+        showFileSelector({
+            accept: '.json',
+            onSelect: (file) => {
+                const ruleData = JSON.parse(file.content);
+                validateRuleStructure(ruleData);
+                showRulePreview(ruleData);
+            }
+        });
+    },
+    
+    // Exportar paquete completo
+    exportAllRules: () => {
+        const rulesPackage = {
+            exportDate: new Date().toISOString(),
+            version: "1.0",
+            rules: businessRules,
+            metadata: {
+                totalRules: Object.keys(businessRules).length,
+                activeRules: Object.values(businessRules).filter(r => r.active).length
+            }
+        };
+        downloadJSON(rulesPackage, `business_rules_package_${timestamp}.json`);
+    },
+    
+    // Importar paquete completo
+    importRulesPackage: () => {
+        showFileSelector({
+            accept: '.json',
+            onSelect: (file) => {
+                const package = JSON.parse(file.content);
+                showPackagePreview(package);
+                // Permitir selección de reglas específicas a importar
+            }
+        });
+    }
+};
+```
+
 ### 🔧 Configuración de Desarrollo:
 ```javascript
 const DEVELOPMENT_CONFIG = {
@@ -782,6 +1196,211 @@ const DEVELOPMENT_CONFIG = {
         slowRuleDetection: true,
         optimizationSuggestions: true
     }
+};
+```
+
+---
+
+## 🎯 Casos de Uso de Estado Interno
+
+### **📋 Ejemplos Prácticos de Comportamientos Complejos:**
+
+#### **1. SKU No Duplicado en Misma Factura:**
+```json
+{
+  "prevent_duplicate_sku_same_factura": {
+    "name": "Prevenir SKU Duplicado en Misma Factura",
+    "description": "Si un SKU ya fue seleccionado en otro item, no mostrarlo en selector actual",
+    "behavior_type": "internal_state",
+    "scope": "current_factura",
+    "triggers": ["on_sku_selector_open", "on_sku_selection_change"],
+    "condition": {
+      "type": "field_already_used",
+      "field": "vendor_sku",
+      "exclude_current_item": true
+    },
+    "actions": [
+      {
+        "type": "filter_dropdown_options",
+        "target": "sku_selector",
+        "filter_type": "exclude",
+        "values": "{{used_skus}}"
+      },
+      {
+        "type": "update_placeholder",
+        "message": "{{available_count}} SKUs disponibles ({{used_count}} ya seleccionados)"
+      }
+    ]
+  }
+}
+```
+
+#### **2. Límite de Cantidad Total:**
+```json
+{
+  "total_quantity_limit": {
+    "name": "Límite de Cantidad Total por Factura",
+    "description": "La suma de cantidades no puede exceder el límite de la orden",
+    "behavior_type": "internal_state",
+    "scope": "current_factura",
+    "triggers": ["on_quantity_change", "on_item_add"],
+    "condition": {
+      "type": "sum_exceeds_limit",
+      "field": "quantity",
+      "limit_source": "{{orden_max_quantity}}"
+    },
+    "actions": [
+      {
+        "type": "disable_quantity_increase",
+        "target": "quantity_input_{{current_item}}"
+      },
+      {
+        "type": "show_warning_message",
+        "message": "Límite alcanzado: {{current_sum}}/{{max_limit}}"
+      }
+    ]
+  }
+}
+```
+
+#### **3. Vendor Único por Factura:**
+```json
+{
+  "single_vendor_per_factura": {
+    "name": "Un Solo Vendor por Factura",
+    "description": "Todos los items deben ser del mismo proveedor",
+    "behavior_type": "internal_state",
+    "scope": "current_factura",
+    "triggers": ["on_vendor_change", "on_item_add"],
+    "condition": {
+      "type": "multiple_values_exist",
+      "field": "vendor_id"
+    },
+    "actions": [
+      {
+        "type": "filter_vendor_options",
+        "target": "vendor_selector_{{current_item}}",
+        "values": "{{first_selected_vendor}}"
+      },
+      {
+        "type": "lock_vendor_selection",
+        "target": "all_vendor_selectors",
+        "except": "first_item"
+      }
+    ]
+  }
+}
+```
+
+#### **4. Prioridad de Items (Primer Item Tiene Preferencia):**
+```json
+{
+  "first_item_priority": {
+    "name": "Primer Item Tiene Preferencia",
+    "description": "El primer item puede seleccionar cualquier opción, los demás están limitados",
+    "behavior_type": "internal_state",
+    "scope": "current_factura",
+    "triggers": ["on_item_selection", "on_first_item_change"],
+    "condition": {
+      "type": "item_position_check",
+      "position": "not_first"
+    },
+    "actions": [
+      {
+        "type": "filter_options_based_on_first",
+        "target": "current_item_selectors",
+        "reference": "first_item_selections"
+      },
+      {
+        "type": "show_priority_indicator",
+        "message": "Opciones limitadas por selección del primer item"
+      }
+    ]
+  }
+}
+```
+
+#### **5. Dependencias entre Campos del Mismo Item:**
+```json
+{
+  "material_vendor_dependency": {
+    "name": "Material debe coincidir con Vendor",
+    "description": "Si se selecciona un material, el vendor debe ser compatible",
+    "behavior_type": "internal_state",
+    "scope": "current_item",
+    "triggers": ["on_material_change", "on_vendor_change"],
+    "condition": {
+      "type": "fields_incompatible",
+      "field1": "material_id",
+      "field2": "vendor_id",
+      "compatibility_source": "material_vendor_matrix"
+    },
+    "actions": [
+      {
+        "type": "show_compatibility_warning",
+        "message": "Este material no está disponible con el vendor seleccionado"
+      },
+      {
+        "type": "suggest_compatible_options",
+        "target": "vendor_selector"
+      }
+    ]
+  }
+}
+```
+
+### **🔧 Funciones de Estado Interno:**
+
+```javascript
+// Sistema de detección de estado actual
+const getCurrentFacturaState = () => {
+    const currentFactura = getCurrentFacturaData();
+    return {
+        items: currentFactura.items || [],
+        usedValues: extractUsedValues(currentFactura.items),
+        totals: calculateTotals(currentFactura.items),
+        constraints: evaluateConstraints(currentFactura),
+        itemCount: currentFactura.items.length,
+        firstItemSelections: currentFactura.items[0] || {}
+    };
+};
+
+// Extractor de valores ya utilizados
+const extractUsedValues = (items) => {
+    const used = {};
+    items.forEach((item, index) => {
+        Object.keys(item).forEach(field => {
+            if (!used[field]) used[field] = [];
+            if (item[field] && !used[field].includes(item[field])) {
+                used[field].push({
+                    value: item[field],
+                    itemIndex: index
+                });
+            }
+        });
+    });
+    return used;
+};
+
+// Calculador de totales
+const calculateTotals = (items) => {
+    return {
+        totalQuantity: items.reduce((sum, item) => sum + (item.quantity || 0), 0),
+        totalValue: items.reduce((sum, item) => sum + (item.value || 0), 0),
+        uniqueVendors: new Set(items.map(item => item.vendor_id)).size,
+        uniqueMaterials: new Set(items.map(item => item.material_id)).size
+    };
+};
+
+// Evaluador de restricciones
+const evaluateConstraints = (factura) => {
+    const orden = getRelatedOrden(factura.sap_order_id);
+    return {
+        maxQuantity: orden?.max_quantity || Infinity,
+        allowedVendors: orden?.allowed_vendors || [],
+        requiredMaterials: orden?.required_materials || [],
+        budgetLimit: orden?.budget_limit || Infinity
+    };
 };
 ```
 
