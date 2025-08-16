@@ -16,9 +16,7 @@ Para usarlo:
 // Ejemplo de configuración extendida
 const ENTITY_CONFIG_EXTENDED = {
     settings: {
-        storagePrefix: 'poc_data_',
-        theme: 'default',
-        language: 'es'
+        storagePrefix: 'poc_data_'
     },
     
     entities: {
@@ -29,43 +27,34 @@ const ENTITY_CONFIG_EXTENDED = {
             displayName: "Productos",
             displayNameSingular: "Producto",
             icon: "🛍️",
-            description: "Catálogo de productos del sistema",
             
             fields: [
                 { 
                     key: "codigo", 
                     label: "Código", 
                     type: "text", 
-                    required: true,
-                    searchable: true,
-                    sortable: true
+                    required: true
                 },
                 { 
                     key: "nombre", 
                     label: "Nombre", 
                     type: "text", 
-                    required: true,
-                    searchable: true,
-                    sortable: true
+                    required: true
                 },
                 { 
                     key: "precio", 
                     label: "Precio", 
-                    type: "currency",
-                    sortable: true
+                    type: "currency"
                 },
                 { 
                     key: "stock", 
                     label: "Stock", 
-                    type: "number",
-                    sortable: true
+                    type: "number"
                 },
                 { 
                     key: "categoria", 
                     label: "Categoría", 
-                    type: "text",
-                    searchable: true,
-                    sortable: true
+                    type: "text"
                 },
                 { 
                     key: "activo", 
@@ -75,8 +64,7 @@ const ENTITY_CONFIG_EXTENDED = {
                 { 
                     key: "fechaCreacion", 
                     label: "Fecha Creación", 
-                    type: "date",
-                    sortable: true
+                    type: "date"
                 },
                 { 
                     key: "tags", 
@@ -101,7 +89,6 @@ const ENTITY_CONFIG_EXTENDED = {
             },
             
             config: {
-                allowMultipleFiles: true,
                 validateOnSave: true,
                 autoGenerateId: false,
                 confirmDelete: true
@@ -113,36 +100,29 @@ const ENTITY_CONFIG_EXTENDED = {
             displayName: "Clientes",
             displayNameSingular: "Cliente",
             icon: "👥",
-            description: "Base de datos de clientes",
             
             fields: [
                 { 
                     key: "email", 
                     label: "Email", 
                     type: "text", 
-                    required: true,
-                    searchable: true,
-                    sortable: true
+                    required: true
                 },
                 { 
                     key: "nombre", 
                     label: "Nombre Completo", 
                     type: "text", 
-                    required: true,
-                    searchable: true,
-                    sortable: true
+                    required: true
                 },
                 { 
                     key: "telefono", 
                     label: "Teléfono", 
-                    type: "text",
-                    searchable: true
+                    type: "text"
                 },
                 { 
                     key: "fechaRegistro", 
                     label: "Fecha Registro", 
-                    type: "date",
-                    sortable: true
+                    type: "date"
                 },
                 { 
                     key: "activo", 
@@ -171,7 +151,6 @@ const ENTITY_CONFIG_EXTENDED = {
             },
             
             config: {
-                allowMultipleFiles: true,
                 validateOnSave: true,
                 autoGenerateId: false,
                 confirmDelete: true

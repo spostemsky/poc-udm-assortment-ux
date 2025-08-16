@@ -7,14 +7,7 @@
 const ENTITY_CONFIG = {
     // Configuración global del Data Manager
     settings: {
-        storagePrefix: 'poc_data_',
-        theme: 'default',
-        language: 'es',
-        itemsPerPage: 50,
-        enableExport: true,
-        enableImport: true,
-        enableEdit: true,
-        enableDelete: true
+        storagePrefix: 'poc_data_'
     },
 
     // Definición de entidades
@@ -24,7 +17,6 @@ const ENTITY_CONFIG = {
             displayName: "Facturas",
             displayNameSingular: "Factura", 
             icon: "📄",
-            description: "Gestión de facturas del sistema",
             
             // Configuración de campos para la tabla
             fields: [
@@ -32,36 +24,28 @@ const ENTITY_CONFIG = {
                     key: "external_id", 
                     label: "EXTERNAL ID", 
                     type: "text", 
-                    required: true,
-                    searchable: true,
-                    sortable: true
+                    required: true
                 },
                 { 
                     key: "sap_order_id", 
                     label: "Nro Orden", 
-                    type: "number",
-                    sortable: true
+                    type: "number"
                 },
                 { 
                     key: "vendor_name", 
                     label: "Proveedor", 
-                    type: "text",
-                    searchable: true,
-                    sortable: true
+                    type: "text"
                 },
                 { 
                     key: "site_id", 
                     label: "Sitio", 
-                    type: "text",
-                    searchable: true,
-                    sortable: true
+                    type: "text"
                 },
                 { 
                     key: "details", 
                     label: "Detalles", 
                     type: "array", 
-                    display: "count",
-                    sortable: true
+                    display: "count"
                 }
             ],
             
@@ -79,7 +63,6 @@ const ENTITY_CONFIG = {
 
             // Configuraciones específicas de la entidad
             config: {
-                allowMultipleFiles: true,
                 validateOnSave: true,
                 autoGenerateId: false,
                 confirmDelete: true
@@ -91,7 +74,6 @@ const ENTITY_CONFIG = {
             displayName: "Órdenes",
             displayNameSingular: "Orden",
             icon: "📋",
-            description: "Gestión de órdenes del sistema",
             
             // Configuración de campos para la tabla
             fields: [
@@ -99,30 +81,23 @@ const ENTITY_CONFIG = {
                     key: "id", 
                     label: "ID", 
                     type: "text", 
-                    required: true,
-                    searchable: true,
-                    sortable: true
+                    required: true
                 },
                 { 
                     key: "sapOrderId", 
                     label: "SAP Order ID", 
-                    type: "text",
-                    searchable: true,
-                    sortable: true
+                    type: "text"
                 },
                 { 
                     key: "siteId", 
                     label: "Sitio", 
-                    type: "text",
-                    searchable: true,
-                    sortable: true
+                    type: "text"
                 },
                 { 
                     key: "details", 
                     label: "Detalles", 
                     type: "array", 
-                    display: "count",
-                    sortable: true
+                    display: "count"
                 }
             ],
             
@@ -137,7 +112,6 @@ const ENTITY_CONFIG = {
 
             // Configuraciones específicas de la entidad
             config: {
-                allowMultipleFiles: true,
                 validateOnSave: true,
                 autoGenerateId: false,
                 confirmDelete: true
@@ -215,14 +189,13 @@ productos: {
     displayName: "Productos",
     displayNameSingular: "Producto",
     icon: "🛍️",
-    description: "Catálogo de productos",
     
     fields: [
-        { key: "codigo", label: "Código", type: "text", required: true, searchable: true },
-        { key: "nombre", label: "Nombre", type: "text", required: true, searchable: true },
-        { key: "precio", label: "Precio", type: "currency", sortable: true },
-        { key: "stock", label: "Stock", type: "number", sortable: true },
-        { key: "categoria", label: "Categoría", type: "text", searchable: true }
+        { key: "codigo", label: "Código", type: "text", required: true },
+        { key: "nombre", label: "Nombre", type: "text", required: true },
+        { key: "precio", label: "Precio", type: "currency" },
+        { key: "stock", label: "Stock", type: "number" },
+        { key: "categoria", label: "Categoría", type: "text" }
     ],
     
     template: {
@@ -235,7 +208,6 @@ productos: {
     },
     
     config: {
-        allowMultipleFiles: true,
         validateOnSave: true,
         autoGenerateId: true,
         confirmDelete: true
