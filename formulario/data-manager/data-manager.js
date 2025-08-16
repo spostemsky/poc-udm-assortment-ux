@@ -268,15 +268,15 @@ class DataManager {
             }
 
             const config = this.entityConfig[entityType];
-            let message = `✅ ${loadedFiles.length} archivo(s) procesado(s)!\n`;
+            let message = `${loadedFiles.length} archivo(s) procesado(s)!\n`;
             message += `${totalRecordsAdded} registro(s) agregado(s) a ${config.displayName}`;
             
             if (totalDuplicates > 0) {
-                message += `\n⚠️ ${totalDuplicates} registro(s) omitido(s) por duplicados`;
+                message += `\n${totalDuplicates} registro(s) omitido(s) por duplicados`;
             }
             
             if (totalInvalid > 0) {
-                message += `\n❌ ${totalInvalid} registro(s) omitido(s) por campos faltantes`;
+                message += `\n${totalInvalid} registro(s) omitido(s) por campos faltantes`;
             }
             
             const alertType = (totalDuplicates > 0 || totalInvalid > 0) ? 'warning' : 'success';
@@ -285,7 +285,7 @@ class DataManager {
             this.refreshData();
 
         } catch (error) {
-            this.showAlert('error', `❌ Error: ${error.message}`);
+            this.showAlert('error', `Error: ${error.message}`);
         }
 
         // Limpiar input oculto
@@ -653,11 +653,11 @@ class DataManager {
             if (this.currentEditingIndex >= 0) {
                 // Editar registro existente
                 data[this.currentEditingIndex] = recordData;
-                this.showAlert('success', `✅ ${config.displayNameSingular} actualizado exitosamente`);
+                this.showAlert('success', `${config.displayNameSingular} actualizado exitosamente`);
             } else {
                 // Agregar nuevo registro
                 data.push(recordData);
-                this.showAlert('success', `✅ ${config.displayNameSingular} agregado exitosamente`);
+                this.showAlert('success', `${config.displayNameSingular} agregado exitosamente`);
             }
             
             this.saveData(this.currentEntity, data);
@@ -665,7 +665,7 @@ class DataManager {
             this.renderDataTable(this.currentEntity);
             
         } catch (error) {
-            this.showAlert('error', `❌ Error: ${error.message}`);
+            this.showAlert('error', `Error: ${error.message}`);
         }
     }
 
@@ -763,7 +763,7 @@ class DataManager {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         
-        this.showAlert('success', `📥 Registro descargado como ${fileName}`);
+        this.showAlert('success', `Registro descargado como ${fileName}`);
     }
 
     getRecordIdentifier(record, config) {
@@ -820,8 +820,11 @@ class DataManager {
             info: 'ℹ️'
         };
 
+        // Limpiar mensaje de iconos existentes para evitar duplicación
+        const cleanMessage = message.replace(/^[✅❌⚠️ℹ️]\s*/, '');
+
         icon.textContent = icons[type] || icons.info;
-        messageEl.textContent = message;
+        messageEl.textContent = cleanMessage;
 
         // Aplicar clase de tipo
         snackbar.className = `snackbar ${type}`;
@@ -866,7 +869,7 @@ class DataManager {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         
-        this.showAlert('success', `📥 ${config.displayName} exportadas como ${fileName}`);
+        this.showAlert('success', `${config.displayName} exportadas como ${fileName}`);
     }
 
     exportAllData() {
@@ -887,7 +890,7 @@ class DataManager {
         });
         
         this.refreshData();
-        this.showAlert('success', '✅ Todos los datos han sido eliminados');
+        this.showAlert('success', 'Todos los datos han sido eliminados');
     }
 
     // =============================================================================
