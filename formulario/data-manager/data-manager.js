@@ -363,14 +363,14 @@ class DataManager {
             const actions = `
                 <td>
                     <div class="record-actions">
-                        <button class="btn btn-secondary btn-sm" onclick="dataManager.downloadRecord(${index})" title="Descargar JSON de este registro">
-                            📥 Descargar
+                        <button class="btn-icon btn-download" onclick="dataManager.downloadRecord(${index})" title="Descargar JSON de este registro">
+                            📥
                         </button>
-                        <button class="btn btn-primary btn-sm" onclick="dataManager.editRecord(${index})">
-                            ✏️ Editar
+                        <button class="btn-icon btn-edit" onclick="dataManager.editRecord(${index})" title="Editar registro">
+                            ✏️
                         </button>
-                        <button class="btn btn-danger btn-sm" onclick="dataManager.deleteRecord(${index})">
-                            🗑️ Eliminar
+                        <button class="btn-icon btn-delete" onclick="dataManager.deleteRecord(${index})" title="Eliminar registro">
+                            🗑️
                         </button>
                     </div>
                 </td>
