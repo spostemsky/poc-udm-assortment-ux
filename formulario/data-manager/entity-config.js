@@ -191,10 +191,78 @@ const ENTITY_CONFIG = {
                 autoGenerateId: false,
                 confirmDelete: true
             }
+        },
+        ofertas: {
+            // Información de display
+            displayName: "Ofertas",
+            displayNameSingular: "Oferta",
+            icon: "🛍️",
+            
+            // Configuración de campos para la tabla
+            fields: [
+                { 
+                    key: "id", 
+                    label: "ID", 
+                    type: "text", 
+                    required: true,
+                    unique: true
+                },
+                { 
+                    key: "vendor_id", 
+                    label: "Vendor ID", 
+                    type: "number", 
+                    required: true,
+                    unique: true
+                },
+                { 
+                    key: "vendor_sku", 
+                    label: "Vendor SKU", 
+                    type: "text", 
+                    required: true,
+                    unique: true
+                },
+                { 
+                    key: "sap_sku", 
+                    label: "SAP SKU", 
+                    type: "text", 
+                    required: true,
+                    unique: true
+                },
+                { 
+                    key: "material_id", 
+                    label: "Material", 
+                    type: "text", 
+                    required: true,
+                    unique: true
+                },
+                { 
+                    key: "status", 
+                    label: "Status", 
+                    type: "text", 
+                    required: true,
+                    unique: true
+                }
+            ],
+            
+            // Template para nuevos registros
+            template: {
+                id: "",
+                vendor_id: null,
+                vendor_sku: "",
+                sap_sku:"",
+                material_id: "",
+                status: ""
+            },
+
+            // Configuraciones específicas de la entidad
+            config: {
+                validateOnSave: true,
+                autoGenerateId: false,
+                confirmDelete: true
+            }
         }
     }
 };
-
 // =============================================================================
 // UTILIDADES DE CONFIGURACIÓN
 // =============================================================================
@@ -252,45 +320,6 @@ function getEntityTemplate(entityKey) {
     const config = getEntityConfig(entityKey);
     return config ? { ...config.template } : {};
 }
-
-// =============================================================================
-// EJEMPLO DE CÓMO AGREGAR UNA NUEVA ENTIDAD
-// =============================================================================
-
-/*
-Para agregar una nueva entidad, simplemente agrega una entrada en ENTITY_CONFIG.entities:
-
-productos: {
-    displayName: "Productos",
-    displayNameSingular: "Producto",
-    icon: "🛍️",
-    
-    fields: [
-        { key: "codigo", label: "Código", type: "text", required: true, unique: true },
-        { key: "nombre", label: "Nombre", type: "text", required: true },
-        { key: "precio", label: "Precio", type: "currency" },
-        { key: "stock", label: "Stock", type: "number" },
-        { key: "categoria", label: "Categoría", type: "text" }
-    ],
-    
-    template: {
-        codigo: "",
-        nombre: "",
-        precio: 0,
-        stock: 0,
-        categoria: "",
-        activo: true
-    },
-    
-    config: {
-        validateOnSave: true,
-        autoGenerateId: true,
-        confirmDelete: true
-    }
-}
-
-¡Y listo! El Data Manager automáticamente reconocerá y manejará la nueva entidad.
-*/
 
 // Exportar configuración para uso en otros módulos
 if (typeof module !== 'undefined' && module.exports) {
