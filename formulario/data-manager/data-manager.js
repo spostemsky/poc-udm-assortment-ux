@@ -45,8 +45,8 @@ class DataManager {
         // Generar tabs de entidades
         this.generateEntityTabs();
         
-        // Generar inputs de archivos
-        this.generateFileInputs();
+        // Configurar upload único
+        this.setupSingleFileUpload();
         
         // Actualizar título
         this.updateTitle();
@@ -70,35 +70,22 @@ class DataManager {
         tabsContainer.innerHTML = tabsHtml;
     }
 
-    generateFileInputs() {
-        const sidebar = document.querySelector('.sidebar-header');
-        if (!sidebar) return;
-
-        // Encontrar el contenedor de uploads o crearlo
-        let uploadsContainer = sidebar.querySelector('.uploads-container');
-        if (!uploadsContainer) {
-            uploadsContainer = document.createElement('div');
-            uploadsContainer.className = 'uploads-container';
-            
-            // Insertar después del h3
-            const h3 = sidebar.querySelector('h3');
-            h3.insertAdjacentElement('afterend', uploadsContainer);
+    setupSingleFileUpload() {
+        const fileInput = document.getElementById('hidden-file-input');
+        if (!fileInput) {
+            console.error('Input de archivo oculto no encontrado');
+            return;
         }
 
-        const uploadsHtml = this.entities.map(entityKey => {
-            const config = this.entityConfig[entityKey];
+        // Event listener para el input oculto
+        fileInput.addEventListener('change', (e) => {
+            if (!this.currentEntity) {
+                this.showAlert('error', 'No hay entidad seleccionada');
+                return;
+            }
             
-            return `
-                <div class="upload-section">
-                    <label for="${entityKey}-file">${config.icon} Cargar ${config.displayName} (JSON):</label>
-                    <div class="file-input-wrapper">
-                        <input type="file" id="${entityKey}-file" class="file-input" accept=".json" multiple>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        uploadsContainer.innerHTML = uploadsHtml;
+            this.handleFileUpload(this.currentEntity, e.target.files);
+        });
     }
 
     updateTitle() {
@@ -110,16 +97,6 @@ class DataManager {
     }
 
     setupEventListeners() {
-        // Event listeners dinámicos para carga de archivos
-        this.entities.forEach(entityKey => {
-            const fileInput = document.getElementById(`${entityKey}-file`);
-            if (fileInput) {
-                fileInput.addEventListener('change', (e) => {
-                    this.handleFileUpload(entityKey, e.target.files);
-                });
-            }
-        });
-
         // Event listener para cerrar modal al hacer clic fuera
         const modal = document.getElementById('edit-modal');
         if (modal) {
@@ -217,8 +194,8 @@ class DataManager {
             this.showAlert('error', `❌ Error: ${error.message}`);
         }
 
-        // Limpiar input
-        const fileInput = document.getElementById(`${entityType}-file`);
+        // Limpiar input oculto
+        const fileInput = document.getElementById('hidden-file-input');
         if (fileInput) {
             fileInput.value = '';
         }
@@ -592,6 +569,20 @@ class DataManager {
         this.currentEditingIndex = -1;
     }
 
+    openFileUpload() {
+        if (!this.currentEntity) {
+            this.showAlert('error', 'No hay entidad seleccionada');
+            return;
+        }
+
+        const fileInput = document.getElementById('hidden-file-input');
+        if (fileInput) {
+            fileInput.click();
+        } else {
+            this.showAlert('error', 'Input de archivo no encontrado');
+        }
+    }
+
     // =============================================================================
     // UTILIDADES
     // =============================================================================
@@ -732,6 +723,10 @@ function closeModal() {
 
 function saveRecord() {
     if (dataManager) dataManager.saveRecord();
+}
+
+function openFileUpload() {
+    if (dataManager) dataManager.openFileUpload();
 }
 
 // =============================================================================

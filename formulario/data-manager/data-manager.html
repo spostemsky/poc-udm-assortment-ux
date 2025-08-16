@@ -18,13 +18,8 @@
             <!-- Barra Lateral -->
             <div class="sidebar">
                 <div class="sidebar-header">
-                    <h3>⚙️ Gestión de Archivos</h3>
+                    <h3>⚙️ Acciones Globales</h3>
                     
-                    <!-- Los inputs de archivos se generan dinámicamente aquí -->
-                    <div class="uploads-container">
-                        <!-- Se genera automáticamente por JavaScript basado en entity-config.js -->
-                    </div>
-
                     <!-- Acciones Globales -->
                     <div class="actions">
                         <button class="btn btn-primary btn-sm" onclick="refreshData()" title="Actualizar vista de datos">
@@ -56,6 +51,9 @@
                     <div class="actions">
                         <button class="btn btn-primary btn-sm" onclick="addNewRecord()" title="Crear nuevo registro">
                             ➕ Nuevo Registro
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="openFileUpload()" title="Subir archivo JSON para la entidad actual">
+                            📤 Subir archivo JSON
                         </button>
                     </div>
                 </div>
@@ -118,6 +116,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Input de archivo oculto para upload -->
+    <input type="file" id="hidden-file-input" accept=".json" multiple style="display: none;">
 
     <!-- Scripts -->
     <!-- IMPORTANTE: El orden de carga es crucial -->
