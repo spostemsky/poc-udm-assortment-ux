@@ -8,12 +8,13 @@ Data Manager es un sistema completamente flexible y reutilizable para gestionar 
 
 - **🔧 Completamente Configurable**: Define entidades mediante configuración JSON
 - **📊 Renderizado Dinámico**: Tablas generadas automáticamente según configuración
+- **🔔 Sistema de Eventos**: EventTarget integrado para comunicación en tiempo real
 - **📁 Gestión de Archivos**: Carga múltiples archivos JSON por entidad
 - **✏️ Edición Inline**: Editor JSON integrado para modificar registros
 - **💾 Almacenamiento Local**: Persistencia automática en localStorage
 - **📤 Exportación**: Descarga datos en formato JSON
 - **🎨 Interfaz Moderna**: UI responsiva y amigable
-- **🔍 Validación**: Sistema de validación configurable
+- **🔍 Validación**: Sistema de validación configurable con campos únicos
 - **🚀 Fácil Integración**: Solo copiar y pegar la carpeta
 
 ## 📁 Estructura de Archivos
@@ -49,6 +50,7 @@ cp -r data-manager/ /ruta/a/tu/proyecto/
     <!-- Scripts del Data Manager -->
     <script src="data-manager/entity-config.js"></script>
     <script src="data-manager/data-manager.js"></script>
+    <script src="data-manager/event-examples.js"></script> <!-- Opcional: ejemplos de eventos -->
 </body>
 </html>
 ```
@@ -365,12 +367,88 @@ Para mejorar este sistema:
 
 ---
 
+## 🔔 Sistema de Eventos
+
+El Data Manager incluye un sistema completo de eventos basado en EventTarget que permite integración en tiempo real con otras aplicaciones.
+
+### Tipos de Eventos
+
+#### 📁 Eventos de Datos
+- `{entity}:loaded` - Archivos cargados
+- `{entity}:updated` - Datos actualizados  
+- `{entity}:deleted` - Registros eliminados
+- `{entity}:cleared` - Todos los datos eliminados
+
+#### 🔄 Eventos de Estado
+- `entity:changed` - Cambio de entidad activa
+- `validation:failed` - Error de validación
+- `manager:initialized` - Sistema inicializado
+
+#### 📊 Eventos Genéricos
+- `data:updated` - Cualquier actualización
+- `data:loaded` - Cualquier carga
+- `data:cleared` - Cualquier limpieza
+
+### Uso Básico
+
+```javascript
+// Escuchar carga de facturas
+dataManager.on('facturas:loaded', function(event) {
+    const { recordsAdded, duplicateCount } = event.detail;
+    console.log(`Cargadas ${recordsAdded} facturas, ${duplicateCount} duplicados`);
+});
+
+// Escuchar cambio de entidad
+dataManager.on('entity:changed', function(event) {
+    const { previousEntity, currentEntity } = event.detail;
+    console.log(`Cambiado de ${previousEntity} a ${currentEntity}`);
+});
+
+// Escuchar cualquier actualización
+dataManager.on('data:updated', function(event) {
+    const { entityType, recordCount } = event.detail;
+    updateDashboard(entityType, recordCount);
+});
+```
+
+### Integración con Formularios
+
+```javascript
+// Sincronizar con formulario externo
+dataManager.on('facturas:updated', function(event) {
+    const facturas = event.detail.data;
+    
+    // Actualizar dropdown de facturas
+    const select = document.getElementById('invoice-select');
+    select.innerHTML = '';
+    facturas.forEach(factura => {
+        const option = document.createElement('option');
+        option.value = factura.external_id;
+        option.textContent = factura.external_id;
+        select.appendChild(option);
+    });
+});
+
+// Verificar eliminaciones
+dataManager.on('facturas:deleted', function(event) {
+    const deletedIds = event.detail.deletedRecords.map(r => r.external_id);
+    const currentId = document.getElementById('invoice-select').value;
+    
+    if (deletedIds.includes(currentId)) {
+        alert('La factura seleccionada fue eliminada');
+        document.getElementById('invoice-select').selectedIndex = 0;
+    }
+});
+```
+
+Para más ejemplos detallados y casos de uso avanzados, consulta `event-examples.js`.
+
 ## 📞 Soporte
 
 Si encuentras problemas o tienes preguntas:
 1. Revisa esta documentación
 2. Verifica la consola del navegador para errores
 3. Comprueba que la configuración sea válida
-4. Consulta los ejemplos incluidos
+4. Consulta los ejemplos incluidos y `event-examples.js`
 
-**¡Happy coding! 🚀**
+**Data Manager v2.1** - ¡Happy coding! 🚀

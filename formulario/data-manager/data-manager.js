@@ -2,8 +2,10 @@
 // GESTOR DE DATOS JSON - VERSIÓN REFACTORIZADA Y FLEXIBLE
 // =============================================================================
 
-class DataManager {
+class DataManager extends EventTarget {
     constructor(config = null) {
+        super(); // Inicializar EventTarget
+        
         // Cargar configuración
         this.config = config || ENTITY_CONFIG;
         this.settings = this.config.settings;
@@ -39,6 +41,13 @@ class DataManager {
         this.refreshData();
         
         console.log('✅ Gestor de Datos inicializado correctamente');
+        
+        // Emitir evento de inicialización
+        this.emitEvent('manager:initialized', {
+            entities: this.entities,
+            currentEntity: this.currentEntity,
+            version: '2.1.0'
+        });
     }
 
     generateDynamicInterface() {
@@ -209,9 +218,27 @@ class DataManager {
             return false;
         }
 
+        const previousData = this.getData(entityType);
         const storageKey = `${this.storagePrefix}${entityType}`;
         localStorage.setItem(storageKey, JSON.stringify(data));
         this.updateLastModified(entityType);
+        
+        // Emitir evento de actualización
+        this.emitEvent(`${entityType}:updated`, {
+            entityType,
+            data,
+            previousData,
+            recordCount: data.length,
+            operation: 'save'
+        });
+        
+        // Evento genérico para cualquier actualización
+        this.emitEvent('data:updated', {
+            entityType,
+            recordCount: data.length,
+            operation: 'save'
+        });
+        
         return true;
     }
 
@@ -231,6 +258,7 @@ class DataManager {
             return false;
         }
 
+        const previousData = this.getData(entityType);
         const storageKey = `${this.storagePrefix}${entityType}`;
         const modifiedKey = `${this.storagePrefix}${entityType}_modified`;
         const filesKey = `${this.storagePrefix}${entityType}_files`;
@@ -238,6 +266,22 @@ class DataManager {
         localStorage.removeItem(storageKey);
         localStorage.removeItem(modifiedKey);
         localStorage.removeItem(filesKey);
+
+        // Emitir evento de limpieza
+        this.emitEvent(`${entityType}:cleared`, {
+            entityType,
+            previousData,
+            recordsCleared: previousData.length,
+            operation: 'clear'
+        });
+
+        // Evento genérico de limpieza
+        this.emitEvent('data:cleared', {
+            entityType,
+            recordsCleared: previousData.length,
+            operation: 'clear'
+        });
+        
         return true;
     }
 
@@ -281,6 +325,24 @@ class DataManager {
             
             const alertType = (totalDuplicates > 0 || totalInvalid > 0) ? 'warning' : 'success';
             this.showAlert(alertType, message);
+
+            // Emitir evento de carga de archivos
+            this.emitEvent(`${entityType}:loaded`, {
+                entityType,
+                files: loadedFiles,
+                recordsAdded: totalRecordsAdded,
+                duplicateCount: totalDuplicates,
+                invalidCount: totalInvalid,
+                operation: 'file_upload'
+            });
+
+            // Evento genérico de carga
+            this.emitEvent('data:loaded', {
+                entityType,
+                recordsAdded: totalRecordsAdded,
+                fileCount: loadedFiles.length,
+                operation: 'file_upload'
+            });
 
             this.refreshData();
 
@@ -404,6 +466,28 @@ class DataManager {
             validationResult.validRecords.push(record);
         });
         
+        // Emitir evento de validación
+        this.emitEvent(`${entityType}:validation`, {
+            entityType,
+            totalRecords: dataArray.length,
+            validRecords: validationResult.validRecords.length,
+            duplicateCount: validationResult.duplicateCount,
+            invalidCount: validationResult.invalidCount,
+            duplicateDetails: validationResult.duplicateDetails,
+            operation: 'validate'
+        });
+
+        // Si hay errores, emitir evento de falla
+        if (validationResult.duplicateCount > 0 || validationResult.invalidCount > 0) {
+            this.emitEvent('validation:failed', {
+                entityType,
+                duplicateCount: validationResult.duplicateCount,
+                invalidCount: validationResult.invalidCount,
+                duplicateDetails: validationResult.duplicateDetails,
+                operation: 'validate'
+            });
+        }
+        
         return validationResult;
     }
 
@@ -459,12 +543,22 @@ class DataManager {
             activeTab.classList.add('active');
         }
         
+        const previousEntity = this.currentEntity;
+        
         // Cambiar entidad actual
         this.currentEntity = entityType;
         
         // Renderizar datos y actualizar título
         this.renderDataTable(entityType);
         this.updateTitle();
+
+        // Emitir evento de cambio de entidad
+        this.emitEvent('entity:changed', {
+            previousEntity,
+            currentEntity: entityType,
+            entityConfig: this.entityConfig[entityType],
+            operation: 'switch'
+        });
     }
 
     renderDataTable(entityType) {
@@ -704,7 +798,17 @@ class DataManager {
             return;
         }
         
+        const deletedRecord = data[index];
         data.splice(index, 1);
+        
+        // Emitir evento de eliminación antes de guardar
+        this.emitEvent(`${this.currentEntity}:deleted`, {
+            entityType: this.currentEntity,
+            deletedRecords: [deletedRecord],
+            remainingCount: data.length,
+            operation: 'delete_single'
+        });
+        
         this.saveData(this.currentEntity, data);
         this.renderDataTable(this.currentEntity);
         this.showAlert('success', `${config.displayNameSingular} eliminado exitosamente`);
@@ -793,6 +897,48 @@ class DataManager {
 
     entityExists(entityType) {
         return entityType in this.entityConfig;
+    }
+
+    // =============================================================================
+    // SISTEMA DE EVENTOS
+    // =============================================================================
+
+    /**
+     * Emite un evento personalizado
+     * @param {string} eventType - Tipo de evento (ej: 'facturas:loaded')
+     * @param {object} detail - Datos del evento
+     */
+    emitEvent(eventType, detail = {}) {
+        const event = new CustomEvent(eventType, {
+            detail: {
+                ...detail,
+                timestamp: Date.now(),
+                source: 'DataManager'
+            }
+        });
+        
+        this.dispatchEvent(event);
+        
+        // Log para desarrollo
+        console.log(`🔔 Evento emitido: ${eventType}`, detail);
+    }
+
+    /**
+     * Método de conveniencia para suscribirse a eventos
+     * @param {string} eventType - Tipo de evento
+     * @param {function} callback - Función callback
+     */
+    on(eventType, callback) {
+        this.addEventListener(eventType, callback);
+    }
+
+    /**
+     * Método de conveniencia para desuscribirse de eventos
+     * @param {string} eventType - Tipo de evento
+     * @param {function} callback - Función callback
+     */
+    off(eventType, callback) {
+        this.removeEventListener(eventType, callback);
     }
 
     showAlert(type, message) {
