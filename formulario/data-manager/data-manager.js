@@ -123,13 +123,13 @@ class DataManager extends EventTarget {
     setupCustomTooltips() {
         // Usar event delegation para tooltips dinámicos
         document.addEventListener('mouseenter', (e) => {
-            if (e.target.classList.contains('btn-icon') && e.target.hasAttribute('title')) {
+            if (e.target && e.target.classList && e.target.classList.contains('btn-icon') && e.target.hasAttribute('title')) {
                 this.showTooltip(e.target);
             }
         });
 
         document.addEventListener('mouseleave', (e) => {
-            if (e.target.classList.contains('btn-icon')) {
+            if (e.target && e.target.classList && e.target.classList.contains('btn-icon')) {
                 this.hideTooltip(e.target);
             }
         });
