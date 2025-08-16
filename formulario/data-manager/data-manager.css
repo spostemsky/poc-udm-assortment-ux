@@ -20,13 +20,13 @@ body {
 }
 
 .header h1 {
-    font-size: 1.8rem;
+    font-size: 1.53rem;
     margin-bottom: 0.25rem;
 }
 
 .header p {
     opacity: 0.8;
-    font-size: 0.9rem;
+    font-size: 0.765rem;
 }
 
 .container {
@@ -63,7 +63,7 @@ body {
 .sidebar-header h3 {
     color: #4c63d2;
     margin-bottom: 1.2rem;
-    font-size: 1.1rem;
+    font-size: 0.935rem;
     font-weight: 600;
     display: flex;
     align-items: center;
@@ -113,7 +113,7 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    font-size: 0.9rem;
+    font-size: 0.765rem;
 }
 
 .btn-primary {
@@ -188,7 +188,7 @@ body {
 
 .content-header h2 {
     color: #4c63d2;
-    font-size: 1.5rem;
+    font-size: 1.275rem;
     margin: 0;
 }
 
@@ -219,6 +219,7 @@ body {
     border-bottom: 2px solid transparent;
     transition: all 0.3s ease;
     font-weight: 500;
+    font-size: 0.85rem;
 }
 
 .tab.active {
@@ -273,6 +274,7 @@ body {
     padding: 0.75rem;
     text-align: left;
     border-bottom: 1px solid #eee;
+    font-size: 0.85rem;
 }
 
 .data-table th {
@@ -296,7 +298,7 @@ body {
 
 .btn-sm {
     padding: 0.4rem 0.8rem;
-    font-size: 0.85rem;
+    font-size: 0.7225rem;
 }
 
 .empty-state {
@@ -401,7 +403,7 @@ body {
     padding: 0.75rem;
     border: 1px solid #ddd;
     border-radius: 6px;
-    font-size: 1rem;
+    font-size: 0.85rem;
 }
 
 .form-control:focus {
@@ -412,7 +414,7 @@ body {
 
 .json-editor {
     font-family: 'Monaco', 'Menlo', monospace;
-    font-size: 0.9rem;
+    font-size: 0.765rem;
     min-height: 300px;
     resize: vertical;
 }
@@ -460,7 +462,7 @@ body {
     }
     
     .header h1 {
-        font-size: 1.5rem;
+        font-size: 1.275rem;
     }
     
     .data-table {
