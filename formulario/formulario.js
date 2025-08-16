@@ -15,6 +15,210 @@ function getDatosFacturas() {
     return data ? JSON.parse(data) : [];
 }
 
+// =============================================================================
+// INTEGRACIÓN CON SISTEMA DE EVENTOS DEL DATA MANAGER
+// =============================================================================
+
+/**
+ * Actualiza el dropdown de facturas automáticamente
+ * Función reutilizable para eventos del Data Manager
+ */
+function actualizarDropdownFacturas(facturasData = null) {
+    console.log('🔄 Actualizando dropdown de facturas...');
+    
+    // Usar datos proporcionados o cargar desde localStorage
+    const datosFacturas = facturasData || getDatosFacturas();
+    
+    if (!datosFacturas || datosFacturas.length === 0) {
+        console.log('No hay facturas disponibles');
+        const selectFacturas = document.getElementById('invoice-select');
+        if (selectFacturas) {
+            selectFacturas.innerHTML = '<option value="">No hay facturas disponibles</option>';
+        }
+        return;
+    }
+    
+    // Procesar external_ids únicos para el dropdown
+    const facturasUnicas = [];
+    const external_ids_vistos = new Set();
+    
+    datosFacturas.forEach(factura => {
+        if (factura.external_id && !external_ids_vistos.has(factura.external_id)) {
+            external_ids_vistos.add(factura.external_id);
+            facturasUnicas.push({
+                external_id: factura.external_id,
+                sap_order_id: factura.sap_order_id,
+                vendor_name: factura.vendor_name
+            });
+        }
+    });
+    
+    // Ordenar facturas por external_id
+    facturasUnicas.sort((a, b) => a.external_id.localeCompare(b.external_id));
+    
+    // Poblar el dropdown
+    const selectFacturas = document.getElementById('invoice-select');
+    if (!selectFacturas) {
+        console.error('Elemento invoice-select no encontrado');
+        return;
+    }
+    
+    // Guardar selección actual para mantenerla si existe
+    const seleccionActual = selectFacturas.value;
+    
+    // Limpiar y repoblar
+    selectFacturas.innerHTML = '';
+    
+    if (facturasUnicas.length > 0) {
+        facturasUnicas.forEach((factura, index) => {
+            const option = document.createElement('option');
+            option.value = factura.external_id;
+            option.textContent = `${factura.external_id} - ${factura.vendor_name}`;
+            selectFacturas.appendChild(option);
+        });
+        
+        // Restaurar selección anterior si todavía existe
+        if (seleccionActual && [...selectFacturas.options].some(opt => opt.value === seleccionActual)) {
+            selectFacturas.value = seleccionActual;
+        } else {
+            // Si no existe, seleccionar la primera
+            selectFacturas.selectedIndex = 0;
+        }
+        
+        console.log(`✅ Dropdown actualizado: ${facturasUnicas.length} facturas disponibles`);
+        
+        // Mostrar indicador de sincronización
+        mostrarIndicadorSincronizacion();
+    } else {
+        selectFacturas.innerHTML = '<option value="">No hay facturas válidas</option>';
+        console.log('⚠️ No se encontraron facturas válidas');
+    }
+    
+    // Actualizar datos globales
+    datosFacturasGlobales = datosFacturas;
+}
+
+/**
+ * Muestra indicador temporal de sincronización
+ */
+function mostrarIndicadorSincronizacion() {
+    const indicator = document.getElementById('sync-status');
+    if (indicator) {
+        indicator.style.display = 'block';
+        indicator.style.opacity = '1';
+        
+        // Ocultar después de 3 segundos
+        setTimeout(() => {
+            indicator.style.opacity = '0.5';
+            setTimeout(() => {
+                indicator.style.display = 'none';
+                indicator.style.opacity = '1';
+            }, 1000);
+        }, 3000);
+    }
+}
+
+/**
+ * Configura los event listeners para el Data Manager
+ * Se ejecuta cuando el Data Manager está disponible
+ */
+function configurarEventListenersDataManager() {
+    if (!window.dataManager) {
+        console.log('⚠️ Data Manager no disponible todavía');
+        return;
+    }
+    
+    console.log('🔔 Configurando event listeners del Data Manager...');
+    
+    // Escuchar actualizaciones de facturas (carga, edición, guardado)
+    dataManager.on('facturas:updated', function(event) {
+        const { data, operation, recordCount } = event.detail;
+        console.log(`📄 Facturas actualizadas: ${recordCount} registros (${operation})`);
+        
+        // Actualizar dropdown automáticamente
+        actualizarDropdownFacturas(data);
+        
+        // Mostrar notificación sutil
+        console.log(`✅ Selector de facturas sincronizado automáticamente`);
+    });
+    
+    // Escuchar carga de archivos de facturas
+    dataManager.on('facturas:loaded', function(event) {
+        const { recordsAdded, duplicateCount, invalidCount } = event.detail;
+        console.log(`📁 Nuevas facturas cargadas: +${recordsAdded} registros`);
+        
+        if (duplicateCount > 0 || invalidCount > 0) {
+            console.log(`⚠️ Omitidos: ${duplicateCount} duplicados, ${invalidCount} inválidos`);
+        }
+        
+        // El evento 'facturas:updated' también se dispara, así que no necesitamos actualizar aquí
+    });
+    
+    // Escuchar eliminación de facturas
+    dataManager.on('facturas:deleted', function(event) {
+        const { deletedRecords, remainingCount } = event.detail;
+        console.log(`🗑️ Facturas eliminadas: ${deletedRecords.length} registros`);
+        
+        // Verificar si la factura seleccionada fue eliminada
+        const selectFacturas = document.getElementById('invoice-select');
+        if (selectFacturas) {
+            const facturaActual = selectFacturas.value;
+            const facturaEliminada = deletedRecords.some(record => 
+                record.external_id === facturaActual
+            );
+            
+            if (facturaEliminada) {
+                console.log('⚠️ La factura seleccionada fue eliminada');
+                // El dropdown se actualizará automáticamente con el evento 'facturas:updated'
+                // que se dispara después de la eliminación
+            }
+        }
+    });
+    
+    // Escuchar limpieza completa de facturas
+    dataManager.on('facturas:cleared', function(event) {
+        const { recordsCleared } = event.detail;
+        console.log(`🧹 Todas las facturas eliminadas: ${recordsCleared} registros`);
+        
+        // Limpiar dropdown
+        actualizarDropdownFacturas([]);
+    });
+    
+    console.log('✅ Event listeners configurados correctamente');
+}
+
+/**
+ * Intenta configurar los event listeners, con reintentos si el Data Manager no está listo
+ */
+function inicializarIntegracionDataManager() {
+    // Intentar configuración inmediata
+    if (window.dataManager) {
+        configurarEventListenersDataManager();
+        return;
+    }
+    
+    // Escuchar evento de inicialización del Data Manager
+    document.addEventListener('manager:initialized', function(event) {
+        console.log('🚀 Data Manager inicializado, configurando integración...');
+        configurarEventListenersDataManager();
+    });
+    
+    // Fallback: intentar cada segundo por 10 segundos
+    let intentos = 0;
+    const maxIntentos = 10;
+    const intervalo = setInterval(() => {
+        intentos++;
+        if (window.dataManager) {
+            console.log(`✅ Data Manager encontrado en intento ${intentos}`);
+            configurarEventListenersDataManager();
+            clearInterval(intervalo);
+        } else if (intentos >= maxIntentos) {
+            console.log('⚠️ Data Manager no encontrado después de 10 intentos');
+            clearInterval(intervalo);
+        }
+    }, 1000);
+}
+
 function mostrarLoading() {
     document.getElementById('loading-overlay').style.display = 'flex';
     // Ocultar todo el layout principal, no solo el main-container
@@ -1329,4 +1533,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (selectFacturas) {
         selectFacturas.addEventListener('change', manejarCambioFactura);
     }
+    
+    // 🔔 NUEVA INTEGRACIÓN: Configurar event listeners del Data Manager
+    inicializarIntegracionDataManager();
 });
