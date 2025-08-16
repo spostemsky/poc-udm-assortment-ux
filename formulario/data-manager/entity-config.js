@@ -163,6 +163,11 @@ const ENTITY_CONFIG = {
                     type: "text"
                 },
                 { 
+                    key: "format", 
+                    label: "Formato", 
+                    type: "text"
+                },
+                { 
                     key: "equivalences", 
                     label: "Equivalencias", 
                     type: "array",
@@ -175,6 +180,7 @@ const ENTITY_CONFIG = {
                 uuid: "",
                 identifier: "",
                 vendor_id: "",
+                format:"",
                 type: "",
                 equivalences: []
             },
