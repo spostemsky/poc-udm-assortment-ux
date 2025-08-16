@@ -24,13 +24,11 @@ function getDatosFacturas() {
  * Función reutilizable para eventos del Data Manager
  */
 function actualizarDropdownFacturas(facturasData = null) {
-    console.log('🔄 Actualizando dropdown de facturas...');
     
     // Usar datos proporcionados o cargar desde localStorage
     const datosFacturas = facturasData || getDatosFacturas();
     
     if (!datosFacturas || datosFacturas.length === 0) {
-        console.log('No hay facturas disponibles');
         const selectFacturas = document.getElementById('invoice-select');
         if (selectFacturas) {
             selectFacturas.innerHTML = '<option value="">No hay facturas disponibles</option>';
@@ -59,7 +57,6 @@ function actualizarDropdownFacturas(facturasData = null) {
     // Poblar el dropdown
     const selectFacturas = document.getElementById('invoice-select');
     if (!selectFacturas) {
-        console.error('Elemento invoice-select no encontrado');
         return;
     }
     
@@ -85,13 +82,10 @@ function actualizarDropdownFacturas(facturasData = null) {
             selectFacturas.selectedIndex = 0;
         }
         
-        console.log(`✅ Dropdown actualizado: ${facturasUnicas.length} facturas disponibles`);
-        
         // Mostrar indicador de sincronización
         mostrarIndicadorSincronizacion();
     } else {
         selectFacturas.innerHTML = '<option value="">No hay facturas válidas</option>';
-        console.log('⚠️ No se encontraron facturas válidas');
     }
     
     // Actualizar datos globales
@@ -123,111 +117,39 @@ function mostrarIndicadorSincronizacion() {
  * Se ejecuta cuando el Data Manager está disponible
  */
 function configurarEventListenersDataManager() {
-    if (!window.dataManager) {
-        console.log('⚠️ Data Manager no disponible todavía');
+    if (!window.dataManager || typeof window.dataManager.on !== 'function') {
         return;
     }
     
-    console.log('🔔 Configurando event listeners del Data Manager...', window.dataManager);
-    
-    // DEBUGGING: Verificar que dataManager tiene los métodos necesarios
-    if (typeof window.dataManager.on !== 'function') {
-        console.error('❌ Data Manager no tiene método "on". Versión incompatible?');
-        return;
-    }
-    
-    // Escuchar actualizaciones de facturas (carga, edición, guardado)
+    // Escuchar todos los eventos de facturas y actualizar dropdown
     dataManager.on('facturas:updated', function(event) {
-        const { data, operation, recordCount } = event.detail;
-        console.log(`📄 Facturas actualizadas: ${recordCount} registros (${operation})`);
-        
-        // Actualizar dropdown automáticamente
-        actualizarDropdownFacturas(data);
-        
-        // Mostrar notificación sutil
-        console.log(`✅ Selector de facturas sincronizado automáticamente`);
+        actualizarDropdownFacturas(event.detail.data);
     });
     
-    // Escuchar carga de archivos de facturas
-    dataManager.on('facturas:loaded', function(event) {
-        const { recordsAdded, duplicateCount, invalidCount } = event.detail;
-        console.log(`📁 Nuevas facturas cargadas: +${recordsAdded} registros`);
-        
-        if (duplicateCount > 0 || invalidCount > 0) {
-            console.log(`⚠️ Omitidos: ${duplicateCount} duplicados, ${invalidCount} inválidos`);
-        }
-        
-        // El evento 'facturas:updated' también se dispara, así que no necesitamos actualizar aquí
-    });
-    
-    // Escuchar eliminación de facturas
     dataManager.on('facturas:deleted', function(event) {
-        const { deletedRecords, remainingCount } = event.detail;
-        console.log(`🗑️ Facturas eliminadas: ${deletedRecords.length} registros`);
-        
-        // Verificar si la factura seleccionada fue eliminada
-        const selectFacturas = document.getElementById('invoice-select');
-        if (selectFacturas) {
-            const facturaActual = selectFacturas.value;
-            const facturaEliminada = deletedRecords.some(record => 
-                record.external_id === facturaActual
-            );
-            
-            if (facturaEliminada) {
-                console.log('⚠️ La factura seleccionada fue eliminada');
-                // El dropdown se actualizará automáticamente con el evento 'facturas:updated'
-                // que se dispara después de la eliminación
-            }
-        }
+        // Se dispara facturas:updated después, así que no necesitamos hacer nada aquí
     });
     
-    // Escuchar limpieza completa de facturas
     dataManager.on('facturas:cleared', function(event) {
-        const { recordsCleared } = event.detail;
-        console.log(`🧹 Todas las facturas eliminadas: ${recordsCleared} registros`);
-        
-        // Limpiar dropdown
         actualizarDropdownFacturas([]);
     });
-    
-    console.log('✅ Event listeners configurados correctamente');
 }
 
 /**
  * Intenta configurar los event listeners, con reintentos si el Data Manager no está listo
  */
 function inicializarIntegracionDataManager() {
-    console.log('🔧 Inicializando integración con Data Manager...');
-    
     // Intentar configuración inmediata
     if (window.dataManager) {
-        console.log('✅ Data Manager encontrado inmediatamente');
         configurarEventListenersDataManager();
         return;
     }
     
-    // NUEVA ESTRATEGIA: Escuchar mensajes cross-frame para casos donde Data Manager está en otra ventana
+    // Escuchar mensajes cross-frame para casos donde Data Manager está en otra ventana
     window.addEventListener('message', function(event) {
         if (event.data && event.data.type === 'dataManagerEvent') {
-            console.log(`🔔 Evento cross-frame recibido: ${event.data.eventType}`, event.data.detail);
-            
-            // Simular evento local para reutilizar la lógica existente
-            const simulatedEvent = {
-                detail: event.data.detail
-            };
-            
-            // Procesar según el tipo de evento
-            if (event.data.eventType === 'facturas:updated') {
-                console.log(`📄 Facturas actualizadas via cross-frame: ${event.data.detail.recordCount} registros`);
-                actualizarDropdownFacturas();
-            } else if (event.data.eventType === 'facturas:deleted') {
-                console.log(`🗑️ Facturas eliminadas via cross-frame: ${event.data.detail.deletedRecords?.length} registros`);
-                actualizarDropdownFacturas();
-            } else if (event.data.eventType === 'facturas:cleared') {
-                console.log(`🧹 Facturas limpiadas via cross-frame`);
-                actualizarDropdownFacturas([]);
-            } else if (event.data.eventType === 'facturas:loaded') {
-                console.log(`📁 Facturas cargadas via cross-frame: ${event.data.detail.recordsAdded} registros`);
+            // Procesar eventos de facturas
+            if (event.data.eventType.startsWith('facturas:')) {
                 actualizarDropdownFacturas();
             }
         }
@@ -235,7 +157,6 @@ function inicializarIntegracionDataManager() {
     
     // Escuchar evento de inicialización del Data Manager
     document.addEventListener('manager:initialized', function(event) {
-        console.log('🚀 Data Manager inicializado, configurando integración...');
         configurarEventListenersDataManager();
     });
     
@@ -245,51 +166,15 @@ function inicializarIntegracionDataManager() {
     const intervalo = setInterval(() => {
         intentos++;
         if (window.dataManager) {
-            console.log(`✅ Data Manager encontrado en intento ${intentos}`);
             configurarEventListenersDataManager();
             clearInterval(intervalo);
         } else if (intentos >= maxIntentos) {
-            console.log('⚠️ Data Manager no encontrado después de 10 intentos, usando solo cross-frame messaging');
             clearInterval(intervalo);
         }
     }, 1000);
-    
-    console.log('🔄 Cross-frame messaging configurado para recibir eventos del Data Manager');
 }
 
-/**
- * Función de debugging para probar la conexión con Data Manager
- * Llamar desde la consola: probarConexionDataManager()
- */
-function probarConexionDataManager() {
-    console.log('🔍 DIAGNÓSTICO DE CONEXIÓN DATA MANAGER:');
-    console.log('1. ¿Existe window.dataManager?', !!window.dataManager);
-    
-    if (window.dataManager) {
-        console.log('2. Tipo de dataManager:', typeof window.dataManager);
-        console.log('3. ¿Tiene método "on"?', typeof window.dataManager.on === 'function');
-        console.log('4. ¿Tiene método "getData"?', typeof window.dataManager.getData === 'function');
-        
-        try {
-            const facturas = window.dataManager.getData('facturas');
-            console.log('5. Facturas en Data Manager:', facturas?.length || 0);
-        } catch (error) {
-            console.log('5. Error obteniendo facturas:', error.message);
-        }
-    }
-    
-    const facturas = getDatosFacturas();
-    console.log('6. Facturas en localStorage:', facturas?.length || 0);
-    
-    const selector = document.getElementById('invoice-select');
-    console.log('7. Opciones en selector:', selector?.options?.length || 0);
-    
-    console.log('8. Para forzar actualización: actualizarDropdownFacturas()');
-}
 
-// Hacer disponible globalmente para debugging
-window.probarConexionDataManager = probarConexionDataManager;
-window.actualizarDropdownFacturas = actualizarDropdownFacturas;
 
 /**
  * FALLBACK: Polling de localStorage para detectar cambios
@@ -299,14 +184,12 @@ let lastFacturasCount = 0;
 let lastFacturasHash = '';
 
 function iniciarPollingFacturas() {
-    console.log('🔄 Iniciando polling de localStorage como fallback...');
-    
     // Obtener estado inicial
     const facturas = getDatosFacturas();
     lastFacturasCount = facturas?.length || 0;
     lastFacturasHash = JSON.stringify(facturas?.map(f => f.external_id).sort());
     
-    // Polling cada 2 segundos
+    // Polling cada 2 segundos como fallback
     setInterval(() => {
         const facturasActuales = getDatosFacturas();
         const countActual = facturasActuales?.length || 0;
@@ -314,24 +197,11 @@ function iniciarPollingFacturas() {
         
         // Detectar cambios
         if (countActual !== lastFacturasCount || hashActual !== lastFacturasHash) {
-            console.log(`🔄 POLLING: Cambio detectado en facturas (${lastFacturasCount} → ${countActual})`);
-            
-            // Actualizar dropdown
             actualizarDropdownFacturas(facturasActuales);
-            
-            // Actualizar estado
             lastFacturasCount = countActual;
             lastFacturasHash = hashActual;
         }
     }, 2000);
-    
-    console.log('✅ Polling configurado: verificando cambios cada 2 segundos');
-}
-
-// Función para deshabilitar polling si los eventos funcionan
-function deshabilitarPolling() {
-    console.log('🎯 Eventos funcionando correctamente, polling no necesario');
-    // El polling seguirá corriendo pero será redundante
 }
 
 function mostrarLoading() {
