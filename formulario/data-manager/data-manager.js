@@ -924,11 +924,27 @@ class DataManager extends EventTarget {
         
         // DEBUGGING: También emitir en window para cross-frame communication
         if (window.parent && window.parent !== window) {
+            console.log(`📡 Enviando mensaje cross-frame: ${eventType}`);
             window.parent.postMessage({
                 type: 'dataManagerEvent',
                 eventType,
                 detail
             }, '*');
+        }
+        
+        // DEBUGGING ADICIONAL: Emitir también a todas las ventanas abiertas
+        try {
+            // Intentar comunicarse con otras ventanas del mismo origen
+            if (window.opener) {
+                console.log(`📡 Enviando mensaje a ventana opener: ${eventType}`);
+                window.opener.postMessage({
+                    type: 'dataManagerEvent',
+                    eventType,
+                    detail
+                }, '*');
+            }
+        } catch (e) {
+            console.log('⚠️ No se pudo enviar mensaje a opener:', e.message);
         }
     }
 

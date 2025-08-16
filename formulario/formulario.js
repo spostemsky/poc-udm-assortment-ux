@@ -291,6 +291,49 @@ function probarConexionDataManager() {
 window.probarConexionDataManager = probarConexionDataManager;
 window.actualizarDropdownFacturas = actualizarDropdownFacturas;
 
+/**
+ * FALLBACK: Polling de localStorage para detectar cambios
+ * Como último recurso si los eventos no funcionan
+ */
+let lastFacturasCount = 0;
+let lastFacturasHash = '';
+
+function iniciarPollingFacturas() {
+    console.log('🔄 Iniciando polling de localStorage como fallback...');
+    
+    // Obtener estado inicial
+    const facturas = getDatosFacturas();
+    lastFacturasCount = facturas?.length || 0;
+    lastFacturasHash = JSON.stringify(facturas?.map(f => f.external_id).sort());
+    
+    // Polling cada 2 segundos
+    setInterval(() => {
+        const facturasActuales = getDatosFacturas();
+        const countActual = facturasActuales?.length || 0;
+        const hashActual = JSON.stringify(facturasActuales?.map(f => f.external_id).sort());
+        
+        // Detectar cambios
+        if (countActual !== lastFacturasCount || hashActual !== lastFacturasHash) {
+            console.log(`🔄 POLLING: Cambio detectado en facturas (${lastFacturasCount} → ${countActual})`);
+            
+            // Actualizar dropdown
+            actualizarDropdownFacturas(facturasActuales);
+            
+            // Actualizar estado
+            lastFacturasCount = countActual;
+            lastFacturasHash = hashActual;
+        }
+    }, 2000);
+    
+    console.log('✅ Polling configurado: verificando cambios cada 2 segundos');
+}
+
+// Función para deshabilitar polling si los eventos funcionan
+function deshabilitarPolling() {
+    console.log('🎯 Eventos funcionando correctamente, polling no necesario');
+    // El polling seguirá corriendo pero será redundante
+}
+
 function mostrarLoading() {
     document.getElementById('loading-overlay').style.display = 'flex';
     // Ocultar todo el layout principal, no solo el main-container
@@ -1608,4 +1651,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 🔔 NUEVA INTEGRACIÓN: Configurar event listeners del Data Manager
     inicializarIntegracionDataManager();
+    
+    // 🧪 PRUEBA DIRECTA: Polling de localStorage para detectar cambios
+    iniciarPollingFacturas();
 });
