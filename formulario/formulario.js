@@ -93,6 +93,102 @@ function actualizarDropdownFacturas(facturasData = null) {
 }
 
 /**
+ * Verifica si se eliminó la factura actualmente seleccionada
+ * y selecciona automáticamente otra factura disponible
+ */
+function verificarFacturaEliminada(deletedRecords) {
+    const selectFacturas = document.getElementById('invoice-select');
+    if (!selectFacturas || !deletedRecords || deletedRecords.length === 0) {
+        return;
+    }
+    
+    const facturaActual = selectFacturas.value;
+    if (!facturaActual) {
+        return;
+    }
+    
+    // Verificar si la factura actual está en la lista de eliminadas
+    const facturaEliminada = deletedRecords.some(record => 
+        record.external_id === facturaActual
+    );
+    
+    if (facturaEliminada) {
+        // Esperar a que se actualice el selector con facturas:updated
+        // y luego seleccionar automáticamente otra factura
+        setTimeout(() => {
+            seleccionarSiguienteFacturaDisponible();
+        }, 100);
+    }
+}
+
+/**
+ * Selecciona automáticamente la siguiente factura disponible
+ * o limpia contenedores si no hay facturas
+ */
+function seleccionarSiguienteFacturaDisponible() {
+    const selectFacturas = document.getElementById('invoice-select');
+    if (!selectFacturas) {
+        return;
+    }
+    
+    // Obtener opciones disponibles (excluyendo la opción vacía)
+    const opciones = Array.from(selectFacturas.options).filter(option => option.value !== '');
+    
+    if (opciones.length > 0) {
+        // Seleccionar la primera factura disponible
+        selectFacturas.value = opciones[0].value;
+        
+        // Disparar el evento de cambio para cargar los contenedores
+        const event = new Event('change', { bubbles: true });
+        selectFacturas.dispatchEvent(event);
+        
+        console.log('Auto-seleccionada factura:', opciones[0].value);
+    } else {
+        // No hay facturas disponibles, limpiar contenedores
+        selectFacturas.value = '';
+        limpiarTodosLosContenedores();
+        console.log('No hay facturas disponibles, contenedores limpiados');
+    }
+}
+
+/**
+ * Selecciona automáticamente la primera factura disponible
+ * cuando se cargan facturas desde un estado vacío
+ */
+function seleccionarPrimeraFacturaDisponible() {
+    const selectFacturas = document.getElementById('invoice-select');
+    if (!selectFacturas) {
+        return;
+    }
+    
+    // Obtener opciones disponibles (excluyendo la opción vacía)
+    const opciones = Array.from(selectFacturas.options).filter(option => option.value !== '');
+    
+    if (opciones.length > 0) {
+        // Seleccionar la primera factura disponible
+        selectFacturas.value = opciones[0].value;
+        
+        // Disparar el evento de cambio para cargar los contenedores
+        const event = new Event('change', { bubbles: true });
+        selectFacturas.dispatchEvent(event);
+        
+        console.log('Auto-seleccionada primera factura cargada:', opciones[0].value);
+    }
+}
+
+/**
+ * Limpia todos los contenedores de detalles
+ */
+function limpiarTodosLosContenedores() {
+    const containersWrapper = document.getElementById('containers-wrapper');
+    if (containersWrapper) {
+        // Eliminar todos los contenedores excepto el template
+        const existingContainers = containersWrapper.querySelectorAll('.container:not(.item-container-template)');
+        existingContainers.forEach(container => container.remove());
+    }
+}
+
+/**
  * Muestra indicador temporal de sincronización
  */
 function mostrarIndicadorSincronizacion() {
@@ -123,15 +219,31 @@ function configurarEventListenersDataManager() {
     
     // Escuchar todos los eventos de facturas y actualizar dropdown
     dataManager.on('facturas:updated', function(event) {
-        actualizarDropdownFacturas(event.detail.data);
+        const facturasAnteriores = getDatosFacturas() || [];
+        const facturasNuevas = event.detail.data || [];
+        
+        // Detectar si pasamos de 0 facturas a tener facturas
+        const teníaFacturas = facturasAnteriores.length > 0;
+        const tieneFacturas = facturasNuevas.length > 0;
+        
+        actualizarDropdownFacturas(facturasNuevas);
+        
+        // Si no tenía facturas y ahora tiene, auto-seleccionar la primera
+        if (!teníaFacturas && tieneFacturas) {
+            setTimeout(() => {
+                seleccionarPrimeraFacturaDisponible();
+            }, 100);
+        }
     });
     
     dataManager.on('facturas:deleted', function(event) {
-        // Se dispara facturas:updated después, así que no necesitamos hacer nada aquí
+        // Verificar si se eliminó la factura actualmente seleccionada
+        verificarFacturaEliminada(event.detail.deletedRecords);
     });
     
     dataManager.on('facturas:cleared', function(event) {
         actualizarDropdownFacturas([]);
+        limpiarTodosLosContenedores();
     });
 }
 
@@ -149,8 +261,27 @@ function inicializarIntegracionDataManager() {
     window.addEventListener('message', function(event) {
         if (event.data && event.data.type === 'dataManagerEvent') {
             // Procesar eventos de facturas
-            if (event.data.eventType.startsWith('facturas:')) {
+            if (event.data.eventType === 'facturas:updated') {
+                const facturasAnteriores = getDatosFacturas() || [];
+                const teníaFacturas = facturasAnteriores.length > 0;
+                
                 actualizarDropdownFacturas();
+                
+                // Verificar si ahora tiene facturas (después de actualizar)
+                const facturasActuales = getDatosFacturas() || [];
+                const tieneFacturas = facturasActuales.length > 0;
+                
+                // Si no tenía facturas y ahora tiene, auto-seleccionar la primera
+                if (!teníaFacturas && tieneFacturas) {
+                    setTimeout(() => {
+                        seleccionarPrimeraFacturaDisponible();
+                    }, 100);
+                }
+            } else if (event.data.eventType === 'facturas:deleted') {
+                verificarFacturaEliminada(event.data.detail.deletedRecords);
+            } else if (event.data.eventType === 'facturas:cleared') {
+                actualizarDropdownFacturas([]);
+                limpiarTodosLosContenedores();
             }
         }
     });
@@ -197,7 +328,40 @@ function iniciarPollingFacturas() {
         
         // Detectar cambios
         if (countActual !== lastFacturasCount || hashActual !== lastFacturasHash) {
+            const selectFacturas = document.getElementById('invoice-select');
+            const facturaActual = selectFacturas?.value;
+            let facturaEliminada = false;
+            let facturasAgregadas = false;
+            
+            // Si hay menos facturas, verificar si se eliminó la actual
+            if (countActual < lastFacturasCount && facturaActual) {
+                // Si la factura actual ya no existe en los datos actuales
+                if (!facturasActuales.some(f => f.external_id === facturaActual)) {
+                    facturaEliminada = true;
+                }
+            }
+            
+            // Si pasamos de 0 facturas a tener facturas
+            if (lastFacturasCount === 0 && countActual > 0) {
+                facturasAgregadas = true;
+            }
+            
+            // Actualizar dropdown primero
             actualizarDropdownFacturas(facturasActuales);
+            
+            // Si se eliminó la factura actual, seleccionar automáticamente otra
+            if (facturaEliminada) {
+                setTimeout(() => {
+                    seleccionarSiguienteFacturaDisponible();
+                }, 100);
+            }
+            // Si se agregaron facturas desde cero, seleccionar la primera
+            else if (facturasAgregadas) {
+                setTimeout(() => {
+                    seleccionarPrimeraFacturaDisponible();
+                }, 100);
+            }
+            
             lastFacturasCount = countActual;
             lastFacturasHash = hashActual;
         }
