@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="formulario.css">
+    <title>Formulario de Productos</title>
+</head>
+
+<body>
+  <!-- Loading overlay -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="loading-content">
+      <div class="spinner"></div>
+      <div class="loading-text">Cargando datos...</div>
+    </div>
+  </div>
+
+  <div class="main-layout">
+    <!-- Selector de Facturas -->
+    <div class="invoice-selector">
+      <div class="invoice-selector-header">
+        <h3>Seleccionar Factura</h3>
+        <a href="data-manager/data-manager.html" target="_blank" class="data-manager-btn">
+          📊 Gestionar Datos
+        </a>
+      </div>
+      <div class="invoice-dropdown-container">
+        <label for="invoice-select">Factura:</label>
+        <select id="invoice-select">
+        </select>
+      </div>
+    </div>
+    
+    <!-- Contenedor para múltiples contenedores de ítems -->
+    <div id="containers-wrapper">
+      <!-- Template para contenedor de ítem -->
+      <div class="container item-container-template" style="display: none;">
+        <div class="header">
+          <span class="item-title">SKU en la factura: #[ITEM_ID]</span>
+          <span class="collapse-icon" onclick="toggleCollapse(this)">^</span>
+        </div>
+        <div class="info item-description">[ITEM_DESCRIPTION]</div>
+        
+        <div class="collapsible-content">
+          <div class="divider divider--container"></div>
+
+          <div class="horizontal-dropdown">
+            <label>¿Necesitas agregar más de un producto a este SKU?</label>
+            <select class="multiple-products-select">
+              <option value="no">No</option>
+              <option value="si">Sí</option>
+            </select>
+          </div>
+
+          <div class="sections-container">
+            <!-- Template for a section -->
+            <div class="section" style="display: none;">
+              <div class="input-group full-width">
+                <div class="input-field">
+                    <label>SKU del producto en la orden</label>
+                  <div class="custom-dropdown">
+                    <div class="custom-dropdown-selected">
+                      <span class="custom-dropdown-placeholder">Seleccione un SKU</span>
+                      <span class="custom-dropdown-arrow">▼</span>
+                </div>
+                    <div class="custom-dropdown-options"></div>
+                </div>
+                  <div class="product-description"></div>
+                </div>
+              </div>
+              <div class="divider"></div>
+                <div class="input-group">
+                <div class="input-field">
+                  <label>Unidades por formato</label>
+                  <div class="units-container">
+                    <input type="number" value="1" min="1" step="1" class="units-input" placeholder="">
+                    <span class="units-suffix">u.</span>
+                </div>
+                  <div class="field-error">Debe ingresar un número entero</div>
+                </div>
+                <div class="input-field format-field">
+                  <label>Formato</label>
+                  <input type="text" value="Pack">
+                </div>
+              </div>
+            </div>
+        </div>
+
+          <div class="add-button" onclick="agregarSeccion(this)">+ Agregar otro producto</div>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <script src="formulario.js"></script>
+</body>
+
+</html>

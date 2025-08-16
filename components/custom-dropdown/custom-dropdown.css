@@ -1,0 +1,136 @@
+/* Custom Dropdown Component Styles */
+.custom-dropdown {
+  position: relative;
+  width: 100%;
+  min-width: 0; /* Permite encogimiento */
+  z-index: 100; /* Asegurar que esté por encima */
+}
+
+.custom-dropdown-selected {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875em;
+  background-color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: border-color 0.2s ease;
+  min-height: 36px;
+  min-width: 0; /* Permite encogimiento */
+  position: relative;
+  z-index: 101;
+}
+
+.custom-dropdown-selected span:not(.custom-dropdown-arrow) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  margin-right: 8px;
+}
+
+.custom-dropdown-selected:hover {
+  border-color: #9ca3af;
+}
+
+.custom-dropdown-selected.open {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.custom-dropdown-arrow {
+  transition: transform 0.2s ease;
+  color: #6b7280;
+  font-size: 0.8em;
+}
+
+.custom-dropdown-arrow.open {
+  transform: rotate(180deg);
+}
+
+.custom-dropdown-options {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: #ffffff;
+  border: 1px solid #d1d5db;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 9999;
+  display: none;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.custom-dropdown-options.open {
+  display: block;
+}
+
+/* Asegurar que el contenedor padre no interfiera cuando el dropdown está abierto */
+.custom-dropdown.dropdown-open {
+  z-index: 10000;
+  position: relative;
+}
+
+.section.dropdown-parent-open {
+  overflow: visible !important;
+  z-index: 10000;
+}
+
+.container.dropdown-parent-open {
+  overflow: visible !important;
+  z-index: 10000;
+}
+
+.collapsible-content.dropdown-parent-open {
+  overflow: visible !important;
+  z-index: 10000;
+}
+
+.custom-dropdown-option {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.2s ease;
+}
+
+.custom-dropdown-option:last-child {
+  border-bottom: none;
+}
+
+.custom-dropdown-option:hover {
+  background-color: #f9fafb;
+}
+
+.custom-dropdown-option.selected {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+}
+
+.custom-dropdown-option-text {
+  font-size: 0.875em;
+  color: #374151;
+  font-weight: 500;
+}
+
+.custom-dropdown-option-desc {
+  font-size: 0.75em;
+  color: #6b7280;
+  font-style: italic;
+  margin-top: 2px;
+  line-height: 1.2;
+  padding: 0px 3px;
+  /* Recortar texto largo */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.custom-dropdown-placeholder {
+  color: #9ca3af;
+}
