@@ -363,6 +363,9 @@ class DataManager {
             const actions = `
                 <td>
                     <div class="record-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="dataManager.downloadRecord(${index})" title="Descargar JSON de este registro">
+                            📥 Descargar
+                        </button>
                         <button class="btn btn-primary btn-sm" onclick="dataManager.editRecord(${index})">
                             ✏️ Editar
                         </button>
@@ -581,6 +584,61 @@ class DataManager {
         } else {
             this.showAlert('error', 'Input de archivo no encontrado');
         }
+    }
+
+    downloadRecord(index) {
+        if (!this.currentEntity) {
+            this.showAlert('error', 'No hay entidad seleccionada');
+            return;
+        }
+
+        const data = this.getData(this.currentEntity);
+        if (index < 0 || index >= data.length) {
+            this.showAlert('error', 'Registro no encontrado');
+            return;
+        }
+
+        const record = data[index];
+        const config = this.entityConfig[this.currentEntity];
+        
+        // Generar nombre de archivo único
+        const timestamp = new Date().toISOString().split('T')[0];
+        const recordId = this.getRecordIdentifier(record, config);
+        const fileName = `${this.currentEntity}_${recordId}_${timestamp}.json`;
+        
+        // Crear y descargar archivo
+        const blob = new Blob([JSON.stringify(record, null, 2)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        this.showAlert('success', `📥 Registro descargado como ${fileName}`);
+    }
+
+    getRecordIdentifier(record, config) {
+        // Buscar un campo identificador único en orden de preferencia
+        const identifierFields = ['id', 'external_id', 'uuid', 'codigo', 'email'];
+        
+        for (const field of identifierFields) {
+            if (record[field] && record[field] !== null && record[field] !== '') {
+                // Limpiar caracteres especiales para nombre de archivo
+                return String(record[field]).replace(/[^a-zA-Z0-9\-_]/g, '_').substring(0, 20);
+            }
+        }
+        
+        // Si no hay identificador, usar el primer campo requerido
+        const firstRequiredField = config.fields.find(f => f.required);
+        if (firstRequiredField && record[firstRequiredField.key]) {
+            return String(record[firstRequiredField.key]).replace(/[^a-zA-Z0-9\-_]/g, '_').substring(0, 20);
+        }
+        
+        // Fallback: usar índice
+        return `registro_${Date.now()}`;
     }
 
     // =============================================================================

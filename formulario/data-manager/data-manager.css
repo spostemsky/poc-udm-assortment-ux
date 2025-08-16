@@ -293,12 +293,15 @@ body {
 
 .record-actions {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .btn-sm {
-    padding: 0.4rem 0.8rem;
+    padding: 0.35rem 0.7rem;
     font-size: 0.7225rem;
+    min-width: auto;
 }
 
 .empty-state {
