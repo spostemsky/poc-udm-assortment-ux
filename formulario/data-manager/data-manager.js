@@ -433,32 +433,52 @@ class DataManager extends EventTarget {
             }
             
             // Verificar campos únicos contra datos existentes
+            let duplicateField = null;
+            let duplicateValue = null;
+            
+            // DEBUG: Log de validación de únicos
+            console.log(`🔍 Validando únicos para ${entityType}:`, {
+                record: record,
+                uniqueFields: uniqueFields,
+                existingDataCount: existingData.length
+            });
+            
             const isDuplicate = uniqueFields.some(field => {
                 const recordValue = record[field];
-                if (!recordValue) return false; // Si no tiene valor, no es duplicado
+                console.log(`  • Verificando campo '${field}': "${recordValue}"`);
                 
-                return existingData.some(existingRecord => 
-                    existingRecord[field] === recordValue
-                );
+                if (!recordValue) {
+                    console.log(`    → Valor vacío, saltando validación`);
+                    return false; // Si no tiene valor, no es duplicado
+                }
+                
+                const isFieldDuplicate = existingData.some(existingRecord => {
+                    const existingValue = existingRecord[field];
+                    console.log(`    → Comparando con existente: "${existingValue}"`);
+                    return existingValue === recordValue;
+                });
+                
+                if (isFieldDuplicate) {
+                    duplicateField = field;
+                    duplicateValue = recordValue;
+                    console.log(`    ❌ DUPLICADO ENCONTRADO en '${field}': "${recordValue}"`);
+                    return true; // Detener búsqueda en el primer duplicado encontrado
+                } else {
+                    console.log(`    ✅ No duplicado en '${field}'`);
+                }
+                
+                return false;
             });
             
             if (isDuplicate) {
-                // Encontrar qué campo es duplicado para el reporte
-                const duplicateField = uniqueFields.find(field => {
-                    const recordValue = record[field];
-                    return recordValue && existingData.some(existingRecord => 
-                        existingRecord[field] === recordValue
-                    );
-                });
-                
                 validationResult.duplicateCount++;
                 validationResult.duplicateDetails.push({
                     field: duplicateField,
-                    value: record[duplicateField],
+                    value: duplicateValue,
                     record: record
                 });
                 
-                console.warn(`Registro omitido por duplicado en campo '${duplicateField}':`, record[duplicateField]);
+                console.warn(`Registro omitido por duplicado en campo '${duplicateField}':`, duplicateValue);
                 return;
             }
             
@@ -734,11 +754,26 @@ class DataManager extends EventTarget {
             const recordData = JSON.parse(jsonText);
             const config = this.entityConfig[this.currentEntity];
             
-            // Validar campos requeridos
+            // Validar campos requeridos y únicos
             if (config.config.validateOnSave) {
-                const validationResult = this.validateSingleRecord(this.currentEntity, recordData);
-                if (!validationResult.isValid) {
-                    throw new Error(`Validación fallida: ${validationResult.errors.join(', ')}`);
+                // Validar campos requeridos
+                const basicValidationResult = this.validateSingleRecord(this.currentEntity, recordData);
+                if (!basicValidationResult.isValid) {
+                    throw new Error(`Validación fallida: ${basicValidationResult.errors.join(', ')}`);
+                }
+                
+                // Si es un nuevo registro (no edición), validar también duplicados
+                if (this.currentEditingIndex < 0) {
+                    const duplicateValidationResult = this.validateEntityData(this.currentEntity, [recordData]);
+                    
+                    if (duplicateValidationResult.duplicateCount > 0) {
+                        const duplicateDetail = duplicateValidationResult.duplicateDetails[0];
+                        throw new Error(`Ya existe un registro con ${duplicateDetail.field} = "${duplicateDetail.value}"`);
+                    }
+                    
+                    if (duplicateValidationResult.invalidCount > 0) {
+                        throw new Error('El registro no cumple con los campos requeridos');
+                    }
                 }
             }
             
@@ -749,7 +784,7 @@ class DataManager extends EventTarget {
                 data[this.currentEditingIndex] = recordData;
                 this.showAlert('success', `${config.displayNameSingular} actualizado exitosamente`);
             } else {
-                // Agregar nuevo registro
+                // Agregar nuevo registro (ya validado contra duplicados)
                 data.push(recordData);
                 this.showAlert('success', `${config.displayNameSingular} agregado exitosamente`);
             }
