@@ -17,6 +17,8 @@ class ActionExecutor {
         this.actionHandlers.set('hide_element', this.hideElement.bind(this));
         this.actionHandlers.set('set_container_attribute', this.setContainerAttribute.bind(this));
         this.actionHandlers.set('collapse_container', this.collapseContainer.bind(this));
+        this.actionHandlers.set('filter_container', this.filterContainer.bind(this));
+        this.actionHandlers.set('show_container_normal', this.showContainerNormal.bind(this));
     }
 
     /**
@@ -57,9 +59,9 @@ class ActionExecutor {
         const dropdown = container.querySelector('.custom-dropdown');
         if (!dropdown) return;
 
-        const value = this.resolveVariableValue(action.value, variables);
-        const displayText = this.resolveVariableValue(action.display_text, variables);
-        const description = this.resolveVariableValue(action.description, variables);
+        const value = this.resolveVariableValue(action.value, variables, context);
+        const displayText = this.resolveVariableValue(action.display_text, variables, context);
+        const description = this.resolveVariableValue(action.description, variables, context);
 
         // Pre-seleccionar el valor
         dropdown.setAttribute('data-value', value);
@@ -167,10 +169,29 @@ class ActionExecutor {
     /**
      * Resolver valor de variable
      */
-    resolveVariableValue(value, variables) {
+    resolveVariableValue(value, variables, context) {
         if (typeof value === 'string' && value.startsWith('{{') && value.endsWith('}}')) {
             const varName = value.slice(2, -2);
-            return variables[varName] || value;
+            
+            // Primero intentar desde variables resueltas
+            if (variables && variables[varName]) {
+                return variables[varName];
+            }
+            
+            // Si no está en variables, intentar desde atributos del contenedor (para análisis batch)
+            if (context && context.container) {
+                const container = context.container;
+                switch (varName) {
+                    case 'matched_vendor_sku':
+                        return container.getAttribute('data-analysis-matched-sku');
+                    case 'material_id':
+                    case 'via_material_id':
+                        // Este dato no se guarda en atributos, usar desde variables
+                        break;
+                }
+            }
+            
+            return value; // Fallback: devolver el valor original
         }
         return value;
     }
@@ -187,6 +208,56 @@ class ActionExecutor {
      */
     removeActionHandler(actionType) {
         this.actionHandlers.delete(actionType);
+    }
+
+    /**
+     * Filtrar contenedor (no mostrarlo)
+     * Esta acción se ejecuta durante la generación de contenedores, no después
+     * @param {Object} action - Configuración de la acción
+     * @param {Object} context - Contexto de ejecución
+     * @param {Object} variables - Variables disponibles
+     */
+    filterContainer(action, context, variables) {
+        const container = context.container;
+        if (!container) {
+            console.warn('⚠️ No se encontró contenedor para filtrar');
+            return;
+        }
+
+        // Marcar contenedor como filtrado
+        container.setAttribute('data-bre-filtered', 'true');
+        container.style.display = 'none';
+        
+        // Agregar clase CSS para identificación
+        container.classList.add('bre-filtered');
+        
+        console.log(`🚫 Contenedor filtrado por BRE: ${container.id} - ${action.message || 'Sin mensaje'}`);
+    }
+
+    /**
+     * Mostrar contenedor normalmente
+     * Esta acción confirma que el contenedor debe mostrarse sin restricciones
+     * @param {Object} action - Configuración de la acción
+     * @param {Object} context - Contexto de ejecución
+     * @param {Object} variables - Variables disponibles
+     */
+    showContainerNormal(action, context, variables) {
+        const container = context.container;
+        if (!container) {
+            console.warn('⚠️ No se encontró contenedor para mostrar normalmente');
+            return;
+        }
+
+        // Marcar contenedor como normal
+        container.setAttribute('data-bre-show-normal', 'true');
+        
+        // Asegurar que esté visible
+        container.style.display = 'block';
+        
+        // Agregar clase CSS para identificación
+        container.classList.add('bre-show-normal');
+        
+        console.log(`📝 Contenedor mostrado normalmente: ${container.id} - ${action.message || 'Sin mensaje'}`);
     }
 }
 

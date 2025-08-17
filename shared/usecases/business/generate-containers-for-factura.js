@@ -1,10 +1,12 @@
 /**
  * Caso de Uso: Generar Contenedores para Factura
  * Crea contenedores de UI dinámicos por cada ítem de una factura
+ * INTEGRADO con BatchSkuAnalysisUseCase y Business Rules Engine
  */
 class GenerateContainersForFacturaUseCase {
-    constructor(facturasService) {
+    constructor(facturasService, batchSkuAnalysisUseCase) {
         this.facturasService = facturasService;
+        this.batchSkuAnalysisUseCase = batchSkuAnalysisUseCase;
     }
 
     /**
@@ -12,13 +14,24 @@ class GenerateContainersForFacturaUseCase {
      * @param {string} externalId - External ID de la factura
      * @returns {Object} Resultado de la generación
      */
-    execute(externalId) {
+    async execute(externalId) {
         console.log(`🏗️ Generando contenedores para factura: ${externalId}`);
 
-        // Obtener items de la factura
-        const itemsFactura = this.facturasService.getItemsByExternalId(externalId);
+        // Obtener datos completos de la factura
+        const factura = this.facturasService.getByExternalId(externalId);
+        if (!factura) {
+            console.warn(`⚠️ No se encontró factura: ${externalId}`);
+            return {
+                success: false,
+                message: 'Factura no encontrada',
+                containers: []
+            };
+        }
+
+        // Obtener items de la factura (usando 'details' según tu estructura real)
+        const allItems = factura.details || [];
         
-        if (itemsFactura.length === 0) {
+        if (allItems.length === 0) {
             console.warn(`⚠️ No se encontraron items para factura: ${externalId}`);
             return {
                 success: false,
@@ -27,10 +40,42 @@ class GenerateContainersForFacturaUseCase {
             };
         }
 
+        console.log(`📊 Iniciando análisis de ${allItems.length} items...`);
+
+        // 🧠 PASO 1: ANÁLISIS BATCH DE TODOS LOS ITEMS
+        const itemsConVendorId = allItems.map((item, index) => ({
+            ...item,
+            identificadorItem: item.ean || item.vendor_sku || item.id,
+            vendor_id: 557445679, // Usar vendor_id consistente (deberías obtenerlo de la factura)
+            vendor_sku: item.vendor_sku
+        }));
+
+        const analysisResults = await this.batchSkuAnalysisUseCase.execute(
+            externalId,
+            itemsConVendorId,
+            factura.sap_order_id
+        );
+
+        if (!analysisResults.success) {
+            console.error('❌ Error en análisis batch:', analysisResults.error);
+            return {
+                success: false,
+                message: `Error en análisis: ${analysisResults.error}`,
+                containers: []
+            };
+        }
+
+        console.log(`📊 Análisis completado: ${analysisResults.statistics.direct_matches} directos, ${analysisResults.statistics.cascade_matches} cascada, ${analysisResults.statistics.filtered} filtrados`);
+
+        // 🧠 PASO 2: BRE FILTRA ITEMS (ANTES DE CREAR CONTENEDORES)
+        const filteredItems = this.applyBusinessRulesFiltering(itemsConVendorId, analysisResults);
+        
+        console.log(`🔍 Items después del filtrado BRE: ${filteredItems.length}/${allItems.length}`);
+
         // Limpiar contenedores existentes
         this.clearExistingContainers();
 
-        // Crear contenedores
+        // 🏗️ PASO 3: CREAR CONTENEDORES (SOLO ITEMS NO FILTRADOS)
         const containers = [];
         const containersWrapper = document.getElementById('containers-wrapper');
         const template = containersWrapper?.querySelector('.item-container-template');
@@ -44,9 +89,16 @@ class GenerateContainersForFacturaUseCase {
             };
         }
 
-        // Generar un contenedor por cada ítem
-        itemsFactura.forEach((item, index) => {
-            const containerData = this.createContainerForItem(item, index, template, containersWrapper);
+        // Generar contenedores solo para items no filtrados
+        // Usar los items originales de la factura, no los procesados
+        const originalItemsMap = new Map(allItems.map(item => [item.vendor_sku, item]));
+        
+        filteredItems.forEach((processedItem, index) => {
+            const originalItem = originalItemsMap.get(processedItem.vendor_sku);
+            const itemAnalysis = analysisResults.results.get(processedItem.identificadorItem);
+            
+            // Usar item original para display, pero mantener análisis del procesado
+            const containerData = this.createContainerForItem(originalItem, index, template, containersWrapper, itemAnalysis);
             if (containerData) {
                 containers.push(containerData);
             }
@@ -56,10 +108,80 @@ class GenerateContainersForFacturaUseCase {
 
         return {
             success: true,
-            message: `Se crearon ${containers.length} contenedores`,
+            message: `Se crearon ${containers.length} contenedores (${allItems.length - filteredItems.length} filtrados por BRE)`,
             containers: containers,
-            itemsCount: itemsFactura.length
+            itemsCount: allItems.length,
+            filteredCount: allItems.length - filteredItems.length,
+            analysisResults: analysisResults
         };
+    }
+
+    /**
+     * Aplicar filtrado de Business Rules antes de crear contenedores
+     * @param {Array} items - Items a filtrar
+     * @param {Object} analysisResults - Resultados del análisis batch
+     * @returns {Array} Items no filtrados
+     */
+    applyBusinessRulesFiltering(items, analysisResults) {
+        // Si no hay Business Rules Engine, no filtrar nada
+        if (!window.businessRulesEngine) {
+            console.warn('⚠️ Business Rules Engine no disponible, no se aplicará filtrado');
+            return items;
+        }
+
+        const filteredItems = [];
+
+        items.forEach(item => {
+            const itemAnalysis = analysisResults.results.get(item.identificadorItem);
+            
+            // Verificar si el BRE dice que este item debe ser filtrado
+            const shouldFilter = this.shouldFilterItem(item, itemAnalysis);
+            
+            if (!shouldFilter) {
+                filteredItems.push(item);
+            } else {
+                console.log(`🚫 Item filtrado por BRE: ${item.identificadorItem}`);
+            }
+        });
+
+        return filteredItems;
+    }
+
+    /**
+     * Determinar si un item debe ser filtrado según las reglas BRE
+     * @param {Object} item - Item a evaluar
+     * @param {Object} itemAnalysis - Análisis del item
+     * @returns {boolean} True si debe filtrarse
+     */
+    shouldFilterItem(item, itemAnalysis) {
+        if (!window.businessRulesEngine || !itemAnalysis) {
+            return false;
+        }
+
+        // Crear contexto para evaluación de reglas
+        const context = {
+            item: item,
+            analysis_result: itemAnalysis,
+            should_filter: itemAnalysis.should_filter || false
+        };
+
+        // Evaluar reglas de filtrado (priority: 2)
+        // Solo evaluar reglas que están activas y son de tipo filtrado
+        try {
+            const filterRules = window.businessRulesEngine.getActiveRulesByType('filter');
+            
+            for (const rule of filterRules) {
+                const conditionMet = window.businessRulesEngine.queryEngine.evaluateCondition(rule.when, context);
+                if (conditionMet) {
+                    console.log(`🔍 Regla de filtrado aplicada: ${rule.id} para item ${item.identificadorItem}`);
+                    return true; // Item debe ser filtrado
+                }
+            }
+        } catch (error) {
+            console.warn(`⚠️ Error evaluando reglas de filtrado para ${item.identificadorItem}:`, error);
+        }
+
+        return false; // No filtrar por defecto
     }
 
     /**
@@ -68,9 +190,10 @@ class GenerateContainersForFacturaUseCase {
      * @param {number} index - Índice del item
      * @param {HTMLElement} template - Template del contenedor
      * @param {HTMLElement} wrapper - Contenedor wrapper
+     * @param {Object} itemAnalysis - Análisis del item del BatchSkuAnalysisUseCase
      * @returns {Object} Datos del contenedor creado
      */
-    createContainerForItem(item, index, template, wrapper) {
+    createContainerForItem(item, index, template, wrapper, itemAnalysis) {
         try {
             // Clonar template
             const newContainer = template.cloneNode(true);
@@ -87,6 +210,19 @@ class GenerateContainersForFacturaUseCase {
             // Actualizar IDs de elementos internos
             this.updateContainerIds(newContainer, index);
 
+            // 📊 AGREGAR DATOS DEL ANÁLISIS AL CONTENEDOR
+            if (itemAnalysis) {
+                newContainer.setAttribute('data-analysis-status', itemAnalysis.status);
+                newContainer.setAttribute('data-analysis-should-filter', itemAnalysis.should_filter);
+                newContainer.setAttribute('data-analysis-should-preselect-cascade', itemAnalysis.should_preselect_cascade);
+                newContainer.setAttribute('data-analysis-should-show-normal', itemAnalysis.should_show_normal);
+                newContainer.setAttribute('data-analysis-has-direct-match', itemAnalysis.has_direct_match);
+                
+                if (itemAnalysis.matched_vendor_sku) {
+                    newContainer.setAttribute('data-analysis-matched-sku', itemAnalysis.matched_vendor_sku);
+                }
+            }
+
             // Agregar al DOM
             wrapper.appendChild(newContainer);
 
@@ -94,7 +230,7 @@ class GenerateContainersForFacturaUseCase {
             // Esta función debe estar disponible globalmente desde formulario.js
             if (typeof window.inicializarContenedor === 'function') {
                 window.inicializarContenedor(newContainer, index, item.identificadorItem);
-                console.log(`🎯 Contenedor inicializado con Business Rules para ítem: ${item.identificadorItem}`);
+                console.log(`🎯 Contenedor inicializado con Business Rules para ítem: ${item.identificadorItem} (${itemAnalysis?.status || 'no-analysis'})`);
             } else {
                 console.warn(`⚠️ inicializarContenedor no disponible para ítem: ${item.identificadorItem}`);
             }
@@ -107,7 +243,8 @@ class GenerateContainersForFacturaUseCase {
                 description: item.descripcion,
                 sapOrderId: item.sap_order_id,
                 element: newContainer,
-                item: item
+                item: item,
+                analysis: itemAnalysis // Incluir análisis en el resultado
             };
 
         } catch (error) {
@@ -119,18 +256,20 @@ class GenerateContainersForFacturaUseCase {
     /**
      * Actualizar contenido del contenedor (título y descripción)
      * @param {HTMLElement} container - Contenedor a actualizar
-     * @param {Object} item - Item de la factura
+     * @param {Object} item - Item de la factura (estructura real de factura.details)
      */
     updateContainerContent(container, item) {
         const titleElement = container.querySelector('.item-title');
         const descriptionElement = container.querySelector('.item-description');
 
         if (titleElement) {
-            titleElement.textContent = `SKU en la factura: #${item.identificadorItem}`;
+            // Usar vendor_sku real del item, no identificadorItem procesado
+            titleElement.textContent = `SKU en la factura: #${item.vendor_sku}`;
         }
 
         if (descriptionElement) {
-            descriptionElement.textContent = item.descripcion || 'Sin descripción disponible';
+            // Usar description del item real, no descripcion procesado
+            descriptionElement.textContent = item.description || 'Sin descripción disponible';
         }
     }
 
@@ -214,14 +353,13 @@ class GenerateContainersForFacturaUseCase {
     getInfo() {
         return {
             name: 'GenerateContainersForFacturaUseCase',
-            description: 'Genera contenedores dinámicos para cada ítem de una factura',
-            dependencies: ['FacturasService', 'DOM', 'inicializarContenedor']
+            description: 'Genera contenedores dinámicos para cada ítem de una factura con análisis batch y BRE',
+            dependencies: ['FacturasService', 'BatchSkuAnalysisUseCase', 'BusinessRulesEngine', 'DOM', 'inicializarContenedor']
         };
     }
 }
 
-// 🚀 INICIALIZACIÓN SIMPLIFICADA: Crear instancia lazy cuando se necesite
-// La instancia se creará automáticamente cuando se acceda por primera vez
+// 🚀 INICIALIZACIÓN LAZY CON DEPENDENCIAS INTEGRADAS
 Object.defineProperty(window, 'generateContainersForFacturaUseCase', {
     get: function() {
         // Si ya existe la instancia, devolverla
@@ -229,14 +367,21 @@ Object.defineProperty(window, 'generateContainersForFacturaUseCase', {
             return this._generateContainersInstance;
         }
         
-        // Verificar que facturasService esté disponible (SIN FALLBACKS)
+        // Verificar que todas las dependencias estén disponibles
         if (!window.facturasService) {
             throw new Error('facturasService no está disponible para GenerateContainersForFacturaUseCase');
         }
         
-        // Crear y cachear la instancia
-        console.debug('🏗️ GenerateContainersForFacturaUseCase inicializado');
-        this._generateContainersInstance = new GenerateContainersForFacturaUseCase(window.facturasService);
+        if (!window.batchSkuAnalysisUseCase) {
+            throw new Error('batchSkuAnalysisUseCase no está disponible para GenerateContainersForFacturaUseCase');
+        }
+        
+        // Crear y cachear la instancia con todas las dependencias
+        console.debug('🏗️ GenerateContainersForFacturaUseCase inicializado con análisis batch y BRE');
+        this._generateContainersInstance = new GenerateContainersForFacturaUseCase(
+            window.facturasService,
+            window.batchSkuAnalysisUseCase
+        );
         return this._generateContainersInstance;
     },
     configurable: true

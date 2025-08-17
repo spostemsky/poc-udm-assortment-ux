@@ -15,17 +15,10 @@ window.BUSINESS_RULES_CATEGORY.business = {
     "triggers": ["on_container_initialize"],
     
     "condition": {
-      "type": "field_exact_match",
-      "source": {
-        "entity": "facturas",
-        "field": "details[].vendor_sku",
-        "context": "current_factura_item"
-      },
-      "target": {
-        "entity": "ordenes",
-        "field": "details[].vendorSku",
-        "context": "related_orden_by_sap_order_id"
-      }
+      "type": "analysis_result_check",
+      "field": "has_direct_match",
+      "operator": "equals",
+      "value": true
     },
     
     "actions": [
@@ -71,11 +64,107 @@ window.BUSINESS_RULES_CATEGORY.business = {
     ],
     
     "variables": {
-      "matched_vendor_sku": { "source": "vendorSku" },
+      "matched_vendor_sku": { "source": "matched_vendor_sku" },
       "matched_item_title": { "source": "item.title" },
       "matched_unit_price": { "source": "unitPrice" },
       "matched_material_id": { "source": "materialId" },
       "matched_quantity": { "source": "quantity" }
+    }
+  },
+
+  // 🚫 REGLA 2: Filtrar items cuando hay match en ofertas pero material_id no está en orden
+  "filter_items_offers_match_no_orden": {
+    "name": "Filtrar Items - Match en Ofertas pero No en Orden",
+    "description": "Filtra items cuando hay match en ofertas pero el material_id no está en la orden",
+    "category": "business",
+    "active": true,
+    "priority": 2,
+    
+    "triggers": ["on_container_initialize"],
+    
+    "condition": {
+      "type": "analysis_result_check",
+      "field": "should_filter",
+      "operator": "equals",
+      "value": true
+    },
+    
+    "actions": [
+      {
+        "type": "filter_container",
+        "target": "container",
+        "message": "Item filtrado: material_id no encontrado en orden"
+      }
+    ],
+    
+    "variables": {
+      "item_status": { "source": "analysis_result.status" },
+      "material_id": { "source": "analysis_result.via_material_id" }
+    }
+  },
+
+  // 🎯 REGLA 3: Pre-seleccionar SKU cuando hay match completo en cascada  
+  "preselect_cascade_complete_match": {
+    "name": "Pre-seleccionar SKU - Match Completo en Cascada",
+    "description": "Pre-selecciona SKU cuando hay match completo: oferta → material_id → orden",
+    "category": "business",
+    "active": true,
+    "priority": 3,
+    
+    "triggers": ["on_container_initialize"],
+    
+    "condition": {
+      "type": "analysis_result_check",
+      "field": "should_preselect_cascade",
+      "operator": "equals",
+      "value": true
+    },
+    
+    "actions": [
+      {
+        "type": "preselect_dropdown",
+        "target": "sku_selector",
+        "value": "{{matched_vendor_sku}}",
+        "display_text": "{{matched_vendor_sku}}",
+        "description": "Match en cascada vía material_id {{material_id}}"
+      }
+    ],
+    
+    "variables": {
+      "matched_vendor_sku": { "source": "matched_vendor_sku" },
+      "material_id": { "source": "via_material_id" },
+      "source": { "source": "source" }
+    }
+  },
+
+  // 📝 REGLA 4: Mostrar contenedor normal cuando no hay matches
+  "show_normal_no_offers_match": {
+    "name": "Mostrar Normal - Sin Match en Ofertas",
+    "description": "Muestra contenedor normalmente cuando no hay match en ofertas",
+    "category": "business",
+    "active": true,
+    "priority": 4,
+    
+    "triggers": ["on_container_initialize"],
+    
+    "condition": {
+      "type": "analysis_result_check",
+      "field": "should_show_normal",
+      "operator": "equals",
+      "value": true
+    },
+    
+    "actions": [
+      {
+        "type": "show_container_normal",
+        "target": "container",
+        "message": "Contenedor mostrado normalmente - sin matches encontrados"
+      }
+    ],
+    
+    "variables": {
+      "item_status": { "source": "analysis_result.status" },
+      "reason": { "source": "analysis_result.reason" }
     }
   }
 };

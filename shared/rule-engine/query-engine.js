@@ -40,6 +40,8 @@ class QueryEngine {
         switch (condition.type) {
             case 'field_exact_match':
                 return this.evaluateFieldExactMatch(condition, context);
+            case 'analysis_result_check':
+                return this.evaluateAnalysisResultCheck(condition, context);
             case 'dom_element_value_equals':
                 return this.evaluateDomElementValue(condition, context);
             case 'form_field_comparison':
@@ -123,6 +125,72 @@ class QueryEngine {
         } catch (error) {
             console.error('💥 Error evaluando field_exact_match:', error);
             return null;
+        }
+    }
+
+    /**
+     * Evaluar condición basada en resultados del análisis batch
+     * @param {Object} condition - Condición a evaluar
+     * @param {Object} context - Contexto de evaluación
+     * @returns {boolean} True si la condición se cumple
+     */
+    evaluateAnalysisResultCheck(condition, context) {
+        try {
+            // El contexto debe incluir analysis_result del BatchSkuAnalysisUseCase
+            if (!context.container || !context.container.getAttribute) {
+                console.warn('⚠️ Contexto de contenedor no disponible para analysis_result_check');
+                return false;
+            }
+
+            const container = context.container;
+            
+            // Obtener el campo solicitado de los atributos data-analysis-*
+            const field = condition.field;
+            const expectedValue = condition.value;
+            const operator = condition.operator || 'equals';
+
+            let actualValue;
+
+            // Mapear campos a atributos del contenedor
+            switch (field) {
+                case 'should_filter':
+                    actualValue = container.getAttribute('data-analysis-should-filter') === 'true';
+                    break;
+                case 'should_preselect_cascade':
+                    actualValue = container.getAttribute('data-analysis-should-preselect-cascade') === 'true';
+                    break;
+                case 'should_show_normal':
+                    actualValue = container.getAttribute('data-analysis-should-show-normal') === 'true';
+                    break;
+                case 'has_direct_match':
+                    actualValue = container.getAttribute('data-analysis-has-direct-match') === 'true';
+                    break;
+                case 'status':
+                    actualValue = container.getAttribute('data-analysis-status');
+                    break;
+                default:
+                    console.warn(`⚠️ Campo de análisis no reconocido: ${field}`);
+                    return false;
+            }
+
+            // Evaluar según el operador
+            switch (operator) {
+                case 'equals':
+                    return actualValue === expectedValue;
+                case 'not_equals':
+                    return actualValue !== expectedValue;
+                case 'exists':
+                    return actualValue != null;
+                case 'not_exists':
+                    return actualValue == null;
+                default:
+                    console.warn(`⚠️ Operador no reconocido: ${operator}`);
+                    return false;
+            }
+
+        } catch (error) {
+            console.error('💥 Error evaluando analysis_result_check:', error);
+            return false;
         }
     }
 

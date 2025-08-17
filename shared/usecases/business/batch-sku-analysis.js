@@ -119,14 +119,14 @@ class BatchSkuAnalysisUseCase {
             const directMatch = this.validateSkuUseCase.execute(item.vendor_sku, sapOrderId);
             
             if (directMatch && directMatch.esCoincidenciaExacta) {
-                console.log(`✅ Match directo encontrado para ${item.identificadorItem}: ${directMatch.vendorSku}`);
+                console.log(`✅ Match directo encontrado para ${item.identificadorItem}: ${directMatch.value}`);
                 return {
                     item_id: item.identificadorItem,
                     status: 'direct_match',
                     
                     // ✅ PARA REGLA EXISTENTE (priority: 1)
                     has_direct_match: true,
-                    matched_vendor_sku: directMatch.vendorSku,
+                    matched_vendor_sku: directMatch.value,
                     
                     // ❌ PARA NUEVAS REGLAS (priority: 2-4)
                     should_filter: false,

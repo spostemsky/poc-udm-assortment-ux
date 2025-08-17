@@ -99,6 +99,15 @@ class FacturasService {
         const factura = this.findByExternalId(externalId);
         return factura ? factura.sap_order_id : null;
     }
+
+    /**
+     * Alias para findByExternalId (compatibilidad con Use Cases)
+     * @param {string} externalId - ID externo de la factura
+     * @returns {Object|null} Factura encontrada o null
+     */
+    getByExternalId(externalId) {
+        return this.findByExternalId(externalId);
+    }
 }
 
 // Crear instancia global

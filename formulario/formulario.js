@@ -404,7 +404,9 @@ function cargarDatosIniciales() {
             cargandoDatos = false;
             ocultarLoading();
             // Ahora que tenemos ambos datos, mostrar contenedores de la primera factura
-            mostrarContenedoresPrimeraFactura();
+            mostrarContenedoresPrimeraFactura().catch(error => {
+                console.error('❌ Error mostrando contenedores de primera factura:', error);
+            });
         }
     }
     
@@ -1301,7 +1303,7 @@ function verificarCoincidenciaExacta(vendorSkuFactura, numeroOrdenCompra) {
 
 
 // 🚀 Función para crear contenedores por cada ítem de la factura - CLEAN ARCHITECTURE
-function crearContenedoresPorItem(itemsFactura) {
+async function crearContenedoresPorItem(itemsFactura) {
     console.log('🏗️ Iniciando creación de contenedores para ítems:', itemsFactura.length);
     
     // VALIDACIÓN: Use Case debe estar disponible (SIN FALLBACKS)
@@ -1319,8 +1321,8 @@ function crearContenedoresPorItem(itemsFactura) {
     
     console.log(`🎯 Usando Use Case para factura: ${external_id_actual}`);
     
-    // 🎯 USAR USE CASE para generar contenedores (SIN FALLBACKS)
-    const result = window.generateContainersForFacturaUseCase.execute(external_id_actual);
+    // 🎯 USAR USE CASE para generar contenedores (AHORA ASÍNCRONO CON ANÁLISIS BATCH)
+    const result = await window.generateContainersForFacturaUseCase.execute(external_id_actual);
     
     if (!result.success) {
         throw new Error(`Error en Use Case: ${result.message}`);
@@ -1519,7 +1521,7 @@ function inicializarContenedor(container, index, itemId) {
 window.inicializarContenedor = inicializarContenedor;
 
 // Función para mostrar contenedores de la primera factura al cargar
-function mostrarContenedoresPrimeraFactura() {
+async function mostrarContenedoresPrimeraFactura() {
     const selectFacturas = document.getElementById('invoice-select');
     if (selectFacturas && selectFacturas.options.length > 0) {
         // Obtener la primera factura (ya está seleccionada por defecto)
@@ -1529,14 +1531,14 @@ function mostrarContenedoresPrimeraFactura() {
         // Establecer factura actual
         facturaActual = numeroFacturaSeleccionada;
         
-        // Las reglas se ejecutarán automáticamente en inicializarContenedor() 
-        // para cada contenedor cuando se llame a verificarCoincidenciaExacta()
+        // 🕰️ ESPERAR QUE EL BUSINESS RULES ENGINE ESTÉ COMPLETAMENTE LISTO
+        await esperarBusinessRulesEngine();
         
         // Obtener los ítems de la primera factura
         const itemsFactura = obtenerItemsDeFactura(numeroFacturaSeleccionada);
         
         // Crear contenedores por cada ítem
-        crearContenedoresPorItem(itemsFactura);
+        await crearContenedoresPorItem(itemsFactura);
         
         // Actualizar opciones después de crear todos los contenedores
         setTimeout(() => {
@@ -1549,7 +1551,7 @@ function mostrarContenedoresPrimeraFactura() {
 let facturaActual = null;
 
 // Función para manejar el cambio de factura seleccionada
-function manejarCambioFactura() {
+async function manejarCambioFactura() {
     const selectFacturas = document.getElementById('invoice-select');
     const numeroFacturaSeleccionada = selectFacturas.value;
     
@@ -1570,7 +1572,7 @@ function manejarCambioFactura() {
     const itemsFactura = obtenerItemsDeFactura(numeroFacturaSeleccionada);
     
     // Crear contenedores por cada ítem
-    crearContenedoresPorItem(itemsFactura);
+    await crearContenedoresPorItem(itemsFactura);
     
     // Restaurar estados si existen, luego actualizar opciones
     setTimeout(() => {
@@ -1678,7 +1680,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Agregar event listener para cambios en el selector de facturas
     const selectFacturas = document.getElementById('invoice-select');
     if (selectFacturas) {
-        selectFacturas.addEventListener('change', manejarCambioFactura);
+        selectFacturas.addEventListener('change', () => {
+            manejarCambioFactura().catch(error => {
+                console.error('❌ Error en cambio de factura:', error);
+            });
+        });
     }
     
     // 🔔 NUEVA INTEGRACIÓN: Configurar event listeners del Data Manager
@@ -1687,6 +1693,35 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 🔄 FALLBACK: Polling de localStorage para detectar cambios (si eventos fallan)
     iniciarPollingFacturas();
 });
+
+/**
+ * Espera a que el Business Rules Engine esté completamente inicializado
+ */
+async function esperarBusinessRulesEngine() {
+    console.log('⏳ Esperando que Business Rules Engine esté listo...');
+    
+    let intentos = 0;
+    const maxIntentos = 30; // 3 segundos máximo
+    
+    while (intentos < maxIntentos) {
+        // Verificar que el BRE esté completamente inicializado
+        const breReady = window.RULE_ENGINE && 
+                        window.RULE_ENGINE.initialized && 
+                        window.businessRulesEngine && 
+                        window.businessRulesEngine.queryEngine &&
+                        window.businessRulesEngine.actionExecutor;
+        
+        if (breReady) {
+            console.log('✅ Business Rules Engine listo');
+            return;
+        }
+        
+        intentos++;
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    console.warn('⚠️ Timeout esperando Business Rules Engine - continuando sin BRE');
+}
 
 /**
  * Espera a que los Data Services y Use Cases estén cargados y listos
