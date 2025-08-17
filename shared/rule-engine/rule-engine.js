@@ -28,9 +28,11 @@ const RULE_ENGINE_FILES = {
     
     // Componentes del motor (rutas relativas al HTML que carga este archivo)
     engine: [
-        '../shared/rule-engine/query-engine.js',
+        '../shared/rule-engine/generic-query-engine.js',
         '../shared/rule-engine/action-executor.js',
-        '../shared/rule-engine/engine.js'
+        '../shared/rule-engine/engine.js',
+        '../shared/adapters/query-engine-adapter.js',
+        '../shared/adapters/business-rules-configurator.js'
     ]
 };
 
@@ -138,17 +140,17 @@ async function initializeRuleEngine() {
         // Paso 3: Verificar que todo esté disponible
         console.log('🔍 Paso 3: Verificando disponibilidad de componentes...');
         
-        if (!window.businessRulesEngine) {
-            throw new Error('Business Rules Engine no está disponible');
+        if (!window.initializeBusinessRules) {
+            throw new Error('Business Rules Configurator no está disponible');
         }
 
         if (!window.BUSINESS_RULES_CATEGORY) {
             throw new Error('Categorías de reglas no están disponibles');
         }
 
-        // Paso 4: Inicializar el motor
-        console.log('🚀 Paso 4: Inicializando Business Rules Engine...');
-        const engineInitialized = await window.businessRulesEngine.initialize();
+        // Paso 4: Inicializar el motor usando el configurador
+        console.log('🚀 Paso 4: Inicializando Business Rules Engine con configurador...');
+        const engineInitialized = await window.initializeBusinessRules();
         
         if (!engineInitialized) {
             throw new Error('Error inicializando Business Rules Engine');
@@ -158,8 +160,10 @@ async function initializeRuleEngine() {
         console.log('🎉 Rule Engine inicializado correctamente');
         console.log('📊 Categorías disponibles:', Object.keys(window.BUSINESS_RULES_CATEGORY));
         
-        const rulesInfo = window.businessRulesEngine.getRulesInfo();
-        console.log('📋 Reglas activas:', rulesInfo.activeRules);
+        if (window.businessRulesEngine && window.businessRulesEngine.getRulesInfo) {
+            const rulesInfo = window.businessRulesEngine.getRulesInfo();
+            console.log('📋 Reglas activas:', rulesInfo.activeRules);
+        }
         
         return true;
 

@@ -1,13 +1,26 @@
 /**
  * 🚀 BUSINESS RULES ENGINE - Motor Principal
  * Coordina la evaluación de reglas y ejecución de acciones
+ * 
+ * ✅ GENÉRICO Y REUTILIZABLE:
+ * - Sin dependencias específicas del proyecto
+ * - Inyección de dependencias configurable
+ * - 100% portable a otros proyectos
  */
 class BusinessRulesEngine {
-    constructor() {
+    constructor(queryEngine = null, actionExecutor = null) {
         this.rules = new Map();
-        this.queryEngine = new QueryEngine();
-        this.actionExecutor = new ActionExecutor();
+        
+        // 🔌 INYECCIÓN DE DEPENDENCIAS
+        this.queryEngine = queryEngine || new GenericQueryEngine();
+        this.actionExecutor = actionExecutor || new ActionExecutor();
+        
         this.isInitialized = false;
+        
+        console.log('🏗️ BusinessRulesEngine creado con:', {
+            queryEngine: this.queryEngine.constructor.name,
+            actionExecutor: this.actionExecutor.constructor.name
+        });
     }
 
     /**
