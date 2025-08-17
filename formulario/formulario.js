@@ -4,6 +4,9 @@ let datosFacturasGlobales = null;
 let cargandoDatos = false;
 let estadosContenedores = {}; // Para guardar estados por factura
 
+// Business Rules Engine
+let businessRulesInitialized = false;
+
 // Funciones de compatibilidad para acceder a datos JSON del localStorage
 function getDatosOrdenes() {
     const data = localStorage.getItem('poc_data_ordenes');
@@ -476,9 +479,15 @@ function agregarSeccionAContenedor(containerElement, skipOptionsUpdate = false, 
     const newSection = template.cloneNode(true);
     newSection.style.display = 'block';
 
-    // Si hay SKU coincidente, configurar la sección como restringida
-    if (skuCoincidente) {
-        configurarSeccionConSkuForzado(newSection, skuCoincidente);
+    // 🚀 USAR BUSINESS RULES ENGINE para validaciones
+    if (skuCoincidente && businessRulesInitialized && window.businessRulesEngine) {
+        // El Business Rules Engine ya aplicó las restricciones al container
+        // Solo necesitamos inicializar el dropdown normalmente
+        const dropdown = newSection.querySelector('.custom-dropdown');
+        initializeCustomDropdown(dropdown);
+        
+        // Las acciones de preselección y deshabilitación ya fueron aplicadas por el motor de reglas
+        console.log('✅ Sección agregada con SKU coincidente - Business Rules Engine ya aplicó restricciones');
     } else {
         // Comportamiento normal - inicializar dropdown normalmente
         const dropdown = newSection.querySelector('.custom-dropdown');
@@ -489,6 +498,8 @@ function agregarSeccionAContenedor(containerElement, skipOptionsUpdate = false, 
             actualizarOpciones();
             actualizarEstadoBotonAgregarEnContenedor(containerElement);
         });
+        
+        console.log('✅ Sección agregada sin restricciones - comportamiento normal');
     }
 
     // Agregar validación al input de unidades
@@ -1348,65 +1359,9 @@ function verificarCoincidenciaExacta(vendorSkuFactura, numeroOrdenCompra) {
     return null;
 }
 
-// Función para aplicar restricciones cuando hay coincidencia exacta
-function aplicarRestriccionesCoincidenciaExacta(container, skuCoincidente) {
-    console.log('Aplicando restricciones por coincidencia exacta:', skuCoincidente.value);
-    
-    // 1. Ocultar el dropdown "¿Necesitas agregar más de un producto a este SKU?"
-    const horizontalDropdown = container.querySelector('.horizontal-dropdown');
-    if (horizontalDropdown) {
-        horizontalDropdown.style.display = 'none';
-    }
-    
-    // 2. Ocultar el botón "Agregar otro producto"
-    const addButton = container.querySelector('.add-button');
-    if (addButton) {
-        addButton.style.display = 'none';
-    }
-    
-    // 3. Marcar el contenedor como restringido para referencia futura
-    container.setAttribute('data-coincidencia-exacta', 'true');
-    container.setAttribute('data-sku-forzado', skuCoincidente.value);
-}
 
-// Función para configurar una sección con SKU pre-seleccionado y restringido
-function configurarSeccionConSkuForzado(section, skuCoincidente) {
-    const dropdown = section.querySelector('.custom-dropdown');
-    if (!dropdown) return;
-    
-    // Pre-seleccionar el SKU coincidente
-    dropdown.setAttribute('data-value', skuCoincidente.value);
-    
-    // Actualizar la visualización del dropdown
-    const placeholderSpan = dropdown.querySelector('.custom-dropdown-selected span:not(.custom-dropdown-arrow)');
-    if (placeholderSpan) {
-        placeholderSpan.textContent = skuCoincidente.text;
-        placeholderSpan.className = '';
-    }
-    
-    // Actualizar descripción
-    const descriptionDiv = section.querySelector('.product-description');
-    if (descriptionDiv) {
-        descriptionDiv.textContent = skuCoincidente.description;
-    }
-    
-    // Deshabilitar el dropdown (visual y funcionalmente)
-    const selectedDiv = dropdown.querySelector('.custom-dropdown-selected');
-    if (selectedDiv) {
-        selectedDiv.style.cursor = 'not-allowed';
-        selectedDiv.style.backgroundColor = '#f3f4f6';
-        selectedDiv.style.color = '#6b7280';
-    }
-    
-    // Remover event listeners del dropdown para deshabilitarlo
-    const newDropdown = dropdown.cloneNode(true);
-    dropdown.parentNode.replaceChild(newDropdown, dropdown);
-    
-    // Marcar la sección como restringida
-    section.setAttribute('data-sku-forzado', skuCoincidente.value);
-    
-    console.log('Sección configurada con SKU forzado:', skuCoincidente.value);
-}
+
+
 
 // Función para crear contenedores por cada ítem de la factura
 function crearContenedoresPorItem(itemsFactura) {
@@ -1505,8 +1460,12 @@ function restaurarEstadosContenedores(numeroFactura) {
             if (skuCoincidente) {
                 console.log(`Re-aplicando restricciones por coincidencia exacta para ${itemId}:`, skuCoincidente);
                 
-                // Re-aplicar restricciones al contenedor
-                aplicarRestriccionesCoincidenciaExacta(container, skuCoincidente);
+                // 🚀 USAR BUSINESS RULES ENGINE para re-aplicar restricciones
+                if (businessRulesInitialized && window.businessRulesEngine) {
+                    window.businessRulesEngine.aplicarRestriccionesContainer(container, itemId, numeroOrdenCompra);
+                } else {
+                    console.warn('⚠️ Business Rules Engine no disponible - NO se re-aplicarán restricciones automáticas');
+                }
                 
                 // Recrear secciones con SKU forzado
                 estadoContenedor.sections.forEach((sectionState, sectionIndex) => {
@@ -1572,46 +1531,49 @@ function inicializarContenedor(container, index, itemId) {
     // Configurar estado inicial
     addButton.classList.add('hidden'); // Inicialmente oculto (valor "no")
     
-    // Colapsar todos los contenedores excepto el primero (index 0) - solo si no hay estados guardados
+    // 🚀 REGLAS UX: Colapsar contenedores se maneja via Business Rules Engine
+    // La lógica de colapso ahora está en la regla "collapse_containers_ux"
     const numeroFacturaActual = document.getElementById('invoice-select').value;
     const hayEstadosGuardados = estadosContenedores[numeroFacturaActual];
     
-    if (!hayEstadosGuardados && index > 0) {
-        collapseIcon.classList.add('collapsed');
-        collapsibleContent.classList.add('collapsed');
-    }
-    
-    // *** NUEVA VALIDACIÓN: Verificar coincidencia exacta ***
+    // 🚀 EJECUTAR BUSINESS RULES ENGINE SIEMPRE (para reglas UX y de negocio)
     const numeroOrdenCompra = obtenerOrdenDeCompraDeFactura(numeroFacturaActual);
-    const skuCoincidente = verificarCoincidenciaExacta(itemId, numeroOrdenCompra);
     
-    if (skuCoincidente) {
-        console.log(`Coincidencia exacta encontrada para ${itemId}:`, skuCoincidente);
+    if (businessRulesInitialized && window.businessRulesEngine) {
+        // Evaluar TODAS las reglas aplicables (negocio, UX, validación, UI)
+        const ruleResult = window.businessRulesEngine.aplicarRestriccionesContainer(
+            container, itemId, numeroOrdenCompra, index, hayEstadosGuardados
+        );
         
-        // Aplicar restricciones al contenedor
-        aplicarRestriccionesCoincidenciaExacta(container, skuCoincidente);
-        
-        // Agregar sección con SKU pre-seleccionado y restringido
-        if (!hayEstadosGuardados) {
-            agregarSeccionAContenedor(container, true, skuCoincidente); // Pasar el SKU coincidente
+        // Si hay resultado de regla de negocio (coincidencia SKU)
+        if (ruleResult && ruleResult.esCoincidenciaExacta) {
+            console.log(`Coincidencia exacta encontrada para ${itemId}:`, ruleResult);
+            
+            // Agregar sección con SKU pre-seleccionado y restringido
+            if (!hayEstadosGuardados) {
+                agregarSeccionAContenedor(container, true, ruleResult); // Pasar el resultado de la regla
+            }
+        } else {
+            // Comportamiento normal - no hay coincidencia exacta
+            
+            // Agregar event listener para cambios en el dropdown múltiple
+            multipleProductsSelect.addEventListener('change', function() {
+                manejarCambioMultipleProductos(container);
+            });
+            
+            // Agregar primera sección automáticamente (solo si no hay estados guardados)
+            if (!hayEstadosGuardados) {
+                agregarSeccionAContenedor(container, true); // Skip options update durante inicialización
+                
+                // Inicializar estado inicial
+                setTimeout(() => {
+                    inicializarEstadoInicialContenedor(container);
+                }, 100);
+            }
         }
     } else {
-        // Comportamiento normal - no hay coincidencia exacta
-        
-        // Agregar event listener para cambios en el dropdown múltiple
-        multipleProductsSelect.addEventListener('change', function() {
-            manejarCambioMultipleProductos(container);
-        });
-        
-        // Agregar primera sección automáticamente (solo si no hay estados guardados)
-        if (!hayEstadosGuardados) {
-            agregarSeccionAContenedor(container, true); // Skip options update durante inicialización
-            
-            // Inicializar estado inicial
-            setTimeout(() => {
-                inicializarEstadoInicialContenedor(container);
-            }, 100);
-        }
+        console.warn('⚠️ Business Rules Engine no disponible - sin validaciones automáticas');
+        // Sin motor de reglas, no se aplicarán restricciones automáticas
     }
 }
 
@@ -1625,6 +1587,9 @@ function mostrarContenedoresPrimeraFactura() {
         
         // Establecer factura actual
         facturaActual = numeroFacturaSeleccionada;
+        
+        // Las reglas se ejecutarán automáticamente en inicializarContenedor() 
+        // para cada contenedor cuando se llame a verificarCoincidenciaExacta()
         
         // Obtener los ítems de la primera factura
         const itemsFactura = obtenerItemsDeFactura(numeroFacturaSeleccionada);
@@ -1657,6 +1622,9 @@ function manejarCambioFactura() {
     // Actualizar factura actual
     facturaActual = numeroFacturaSeleccionada;
     
+    // El motor de reglas se ejecutará automáticamente en inicializarContenedor() 
+    // para cada contenedor individual cuando se llame a verificarCoincidenciaExacta()
+    
     // Obtener los ítems de la factura seleccionada
     const itemsFactura = obtenerItemsDeFactura(numeroFacturaSeleccionada);
     
@@ -1673,7 +1641,76 @@ function manejarCambioFactura() {
     }, 200);
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+// =============================================================================
+// BUSINESS RULES ENGINE INTEGRATION
+// =============================================================================
+
+/**
+ * Inicializar el motor de reglas de negocio
+ */
+async function inicializarBusinessRulesEngine() {
+    try {
+        console.log('🚀 Inicializando Business Rules Engine...');
+        
+        // Verificar que todas las dependencias estén cargadas
+        if (!window.BUSINESS_RULES) {
+            console.warn('⚠️ BUSINESS_RULES no está cargado, esperando...');
+            // Esperar un momento para que se carguen los scripts
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        if (window.businessRulesEngine) {
+            await window.businessRulesEngine.initialize();
+            businessRulesInitialized = true;
+            console.log('✅ Business Rules Engine inicializado correctamente');
+            
+            // Mostrar información de reglas cargadas
+            const info = window.businessRulesEngine.getRulesInfo();
+            console.log('📊 Reglas activas:', info.activeRules);
+        } else {
+            console.error('❌ Business Rules Engine no está disponible');
+        }
+    } catch (error) {
+        console.error('💥 Error inicializando Business Rules Engine:', error);
+        console.log('🔄 Business Rules Engine no disponible, sin restricciones automáticas');
+    }
+}
+
+/**
+ * Función de compatibilidad que reemplaza verificarCoincidenciaExacta()
+ * Ahora usa el Business Rules Engine
+ */
+function verificarCoincidenciaExacta(vendorSkuFactura, numeroOrdenCompra) {
+    console.log('🔄 verificarCoincidenciaExacta() - Parámetros:', { vendorSkuFactura, numeroOrdenCompra });
+    
+    // Solo usar Business Rules Engine
+    if (!businessRulesInitialized || !window.businessRulesEngine) {
+        console.warn('⚠️ Business Rules Engine no disponible - NO se aplicará ninguna validación');
+        return null;
+    }
+
+    // Verificar si hay reglas activas para este trigger
+    const info = window.businessRulesEngine.getRulesInfo();
+    console.log('📊 Info reglas:', info);
+    
+    if (info.totalRules === 0) {
+        console.log('📋 No hay reglas activas, saltando validación');
+        return null; // No aplicar ninguna lógica si no hay reglas activas
+    }
+
+    const result = window.businessRulesEngine.verificarCoincidenciaExacta(vendorSkuFactura, numeroOrdenCompra);
+    console.log('🎯 Resultado Business Rules Engine:', result);
+    
+    // Retornar resultado del motor de reglas (puede ser null si no hay coincidencias)
+    return result;
+}
+
+
+
+document.addEventListener('DOMContentLoaded', async function() {
+    // 🚀 INICIALIZAR BUSINESS RULES ENGINE PRIMERO
+    await inicializarBusinessRulesEngine();
+    
     // Iniciar la carga de datos al cargar la página (ahora incluye facturas)
     cargarDatosIniciales();
     
