@@ -1572,8 +1572,24 @@ function inicializarContenedor(container, index, itemId) {
             }
         }
     } else {
-        console.warn('⚠️ Business Rules Engine no disponible - sin validaciones automáticas');
-        // Sin motor de reglas, no se aplicarán restricciones automáticas
+        console.warn('⚠️ Business Rules Engine no disponible - usando fallback completo');
+        
+        // FALLBACK COMPLETO: Replicar el comportamiento normal sin Business Rules Engine
+        multipleProductsSelect.addEventListener('change', function() {
+            manejarCambioMultipleProductos(container);
+        });
+        
+        // Agregar primera sección automáticamente (solo si no hay estados guardados)
+        if (!hayEstadosGuardados) {
+            agregarSeccionAContenedor(container, true); // Skip options update durante inicialización
+            
+            // Inicializar estado inicial
+            setTimeout(() => {
+                inicializarEstadoInicialContenedor(container);
+            }, 100);
+        }
+        
+        console.log(`✅ Contenedor ${index} inicializado con fallback completo`);
     }
 }
 
@@ -1650,26 +1666,41 @@ function manejarCambioFactura() {
  */
 async function inicializarBusinessRulesEngine() {
     try {
-        console.log('🚀 Inicializando Business Rules Engine...');
+        console.log('🚀 Esperando inicialización automática del Rule Engine...');
         
-        // Verificar que todas las dependencias estén cargadas
-        if (!window.BUSINESS_RULES) {
-            console.warn('⚠️ BUSINESS_RULES no está cargado, esperando...');
-            // Esperar un momento para que se carguen los scripts
+        // Esperar a que el sistema automático de rule-engine.js termine
+        let attempts = 0;
+        const maxAttempts = 50; // 5 segundos máximo
+        
+        while (attempts < maxAttempts) {
+            // Verificar si el sistema automático ya inicializó todo
+            if (window.RULE_ENGINE && window.RULE_ENGINE.initialized && window.businessRulesEngine) {
+                businessRulesInitialized = true;
+                console.log('✅ Business Rules Engine inicializado automáticamente');
+                
+                // Mostrar información de reglas cargadas
+                const info = window.businessRulesEngine.getRulesInfo();
+                console.log('📊 Reglas activas:', info.activeRules);
+                return;
+            }
+            
+            // Esperar un poco más
             await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
         }
         
+        // Si llegamos aquí, el sistema automático no funcionó
+        console.warn('⚠️ Sistema automático no completó la inicialización en el tiempo esperado');
+        
+        // Intentar inicializar manualmente como fallback
         if (window.businessRulesEngine) {
             await window.businessRulesEngine.initialize();
             businessRulesInitialized = true;
-            console.log('✅ Business Rules Engine inicializado correctamente');
-            
-            // Mostrar información de reglas cargadas
-            const info = window.businessRulesEngine.getRulesInfo();
-            console.log('📊 Reglas activas:', info.activeRules);
+            console.log('✅ Business Rules Engine inicializado manualmente como fallback');
         } else {
             console.error('❌ Business Rules Engine no está disponible');
         }
+        
     } catch (error) {
         console.error('💥 Error inicializando Business Rules Engine:', error);
         console.log('🔄 Business Rules Engine no disponible, sin restricciones automáticas');
