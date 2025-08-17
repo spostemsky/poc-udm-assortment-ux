@@ -27,7 +27,7 @@ class OfertasService {
      */
     findByVendorId(vendorId) {
         const ofertas = this.getAll();
-        return ofertas.filter(o => o.vendorId === vendorId);
+        return ofertas.filter(o => o.vendor_id == vendorId); // Usar vendor_id (snake_case) y comparación flexible
     }
 
     /**
@@ -37,7 +37,7 @@ class OfertasService {
      */
     findByVendorSku(vendorSku) {
         const ofertas = this.getAll();
-        return ofertas.find(o => o.vendorSku === vendorSku) || null;
+        return ofertas.find(o => o.vendor_sku === vendorSku) || null; // Usar vendor_sku (snake_case)
     }
 
     /**
@@ -47,7 +47,7 @@ class OfertasService {
      */
     getMaterialIdByVendorSku(vendorSku) {
         const oferta = this.findByVendorSku(vendorSku);
-        return oferta ? oferta.materialId : null;
+        return oferta ? oferta.material_id : null; // Usar material_id (snake_case)
     }
 
     /**
@@ -58,7 +58,7 @@ class OfertasService {
      */
     findByVendorIdAndSku(vendorId, vendorSku) {
         const ofertas = this.getAll();
-        return ofertas.find(o => o.vendorId === vendorId && o.vendorSku === vendorSku) || null;
+        return ofertas.find(o => o.vendor_id == vendorId && o.vendor_sku === vendorSku) || null; // Usar snake_case
     }
 
     /**
@@ -69,7 +69,7 @@ class OfertasService {
      */
     findAllByVendorIdAndSku(vendorId, vendorSku) {
         const ofertas = this.getAll();
-        return ofertas.filter(o => o.vendorId === vendorId && o.vendorSku === vendorSku);
+        return ofertas.filter(o => o.vendor_id == vendorId && o.vendor_sku === vendorSku); // Usar snake_case
     }
 
     /**

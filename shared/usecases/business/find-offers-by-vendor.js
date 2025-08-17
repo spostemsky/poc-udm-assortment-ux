@@ -28,7 +28,7 @@ class FindOffersByVendorUseCase {
             }
             
             // Buscar ofertas con mismo vendor_id
-            const ofertas = this.ofertasService.getByVendorId(vendorId);
+            const ofertas = this.ofertasService.findByVendorId(vendorId);
             
             if (!ofertas || ofertas.length === 0) {
                 console.log(`⚠️ No se encontraron ofertas para vendor_id: ${vendorId}`);

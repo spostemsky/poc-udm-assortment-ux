@@ -27,7 +27,7 @@ class OrdenesService {
      */
     findBySapOrderId(sapOrderId) {
         const ordenes = this.getAll();
-        return ordenes.find(o => o.sapOrderId === sapOrderId) || null;
+        return ordenes.find(o => o.sapOrderId == sapOrderId) || null; // Usar comparación flexible (== en lugar de ===)
     }
 
     /**
@@ -130,6 +130,15 @@ class OrdenesService {
             quantity: detail.quantity,
             esCoincidenciaExacta: true
         };
+    }
+
+    /**
+     * Alias para findBySapOrderId (compatibilidad con Use Cases)
+     * @param {string} sapOrderId - SAP Order ID
+     * @returns {Object|null} Orden encontrada o null
+     */
+    getBySapOrderId(sapOrderId) {
+        return this.findBySapOrderId(sapOrderId);
     }
 }
 
