@@ -3,15 +3,15 @@
  * Obtiene los SKUs permitidos para una orden específica y filtra los ya seleccionados
  */
 class GetAvailableSkusForOrdenUseCase {
-    constructor(ordenesRepository) {
-        this.ordenesRepository = ordenesRepository;
+    constructor(ordenesService) {
+        this.ordenesService = ordenesService;
     }
 
     /**
-     * Ejecutar obtención de SKUs disponibles
+     * Ejecutar obtención de SKUs disponibles con filtrado inteligente
      * @param {string} numeroOrdenCompra - Número de orden de compra (SAP Order ID)
-     * @param {Array} skusSeleccionados - Array de SKUs ya seleccionados en otros dropdowns
-     * @param {string} skuActual - SKU actualmente seleccionado (se permite aunque esté en la lista)
+     * @param {Array} skusSeleccionados - Array de SKUs ya seleccionados en otros dropdowns (opcional)
+     * @param {string} skuActual - SKU actualmente seleccionado (se permite aunque esté en la lista) (opcional)
      * @returns {Object} Resultado con SKUs disponibles
      */
     execute(numeroOrdenCompra, skusSeleccionados = [], skuActual = '') {
@@ -31,7 +31,7 @@ class GetAvailableSkusForOrdenUseCase {
         }
 
         // Obtener todos los SKUs de la orden
-        const todosLosSkus = this.ordenesRepository.getVendorSkusBySapOrderId(numeroOrdenCompra);
+        const todosLosSkus = this.ordenesService.getVendorSkusBySapOrderId(numeroOrdenCompra);
 
         if (todosLosSkus.length === 0) {
             console.warn(`⚠️ No se encontraron SKUs para orden: ${numeroOrdenCompra}`);
@@ -153,7 +153,7 @@ class GetAvailableSkusForOrdenUseCase {
                 return false;
             }
 
-            // Actualizar dropdown usando función global (temporal - se refactorizará)
+            // Actualizar dropdown usando función global
             if (typeof populateCustomDropdown === 'function') {
                 populateCustomDropdown(dropdownElement, result.availableOptions, valorActual);
             } else {
@@ -176,7 +176,7 @@ class GetAvailableSkusForOrdenUseCase {
      * @returns {Object} Resultado de la validación
      */
     validateOrdenHasSkus(numeroOrdenCompra) {
-        const orden = this.ordenesRepository.findBySapOrderId(numeroOrdenCompra);
+        const orden = this.ordenesService.findBySapOrderId(numeroOrdenCompra);
         
         if (!orden) {
             return {
@@ -185,7 +185,7 @@ class GetAvailableSkusForOrdenUseCase {
             };
         }
 
-        const skus = this.ordenesRepository.getVendorSkusBySapOrderId(numeroOrdenCompra);
+        const skus = this.ordenesService.getVendorSkusBySapOrderId(numeroOrdenCompra);
         
         return {
             isValid: skus.length > 0,
@@ -204,12 +204,28 @@ class GetAvailableSkusForOrdenUseCase {
         return {
             name: 'GetAvailableSkusForOrdenUseCase',
             description: 'Obtiene SKUs disponibles para una orden, filtrando los ya seleccionados',
-            dependencies: ['OrdenesRepository', 'DOM']
+            dependencies: ['OrdenesService', 'DOM']
         };
     }
 }
 
-// Crear instancia global
-window.getAvailableSkusForOrdenUseCase = new GetAvailableSkusForOrdenUseCase(
-    window.ordenesRepository
-);
+// 🚀 INICIALIZACIÓN LAZY: Crear instancia cuando se necesite
+Object.defineProperty(window, 'getAvailableSkusForOrdenUseCase', {
+    get: function() {
+        // Si ya existe la instancia, devolverla
+        if (this._getAvailableSkusForOrdenInstance) {
+            return this._getAvailableSkusForOrdenInstance;
+        }
+        
+        // Verificar que ordenesService esté disponible (SIN FALLBACKS)
+        if (!window.ordenesService) {
+            throw new Error('ordenesService no está disponible para GetAvailableSkusForOrdenUseCase');
+        }
+        
+        // Crear y cachear la instancia
+        console.debug('🏗️ GetAvailableSkusForOrdenUseCase inicializado');
+        this._getAvailableSkusForOrdenInstance = new GetAvailableSkusForOrdenUseCase(window.ordenesService);
+        return this._getAvailableSkusForOrdenInstance;
+    },
+    configurable: true
+});

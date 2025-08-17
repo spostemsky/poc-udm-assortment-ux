@@ -14,79 +14,32 @@ class ValidateSkuSelectionUseCase {
      * @returns {Object|null} Información del SKU si hay coincidencia exacta, null si no
      */
     execute(vendorSkuFactura, numeroOrdenCompra) {
-        try {
-            // Verificar que los servicios estén disponibles
-            if (!window.ordenesService) {
-                console.warn('OrdenesService no disponible, usando fallback');
-                return this.fallbackValidation(vendorSkuFactura, numeroOrdenCompra);
-            }
-
-            // Buscar la orden correspondiente
-            const ordenCorrespondiente = window.ordenesService.findBySapOrderId(numeroOrdenCompra);
-            
-            if (!ordenCorrespondiente) {
-                console.log(`No se encontró orden con SAP Order ID: ${numeroOrdenCompra}`);
-                return null;
-            }
-
-            // Buscar coincidencia exacta en los detalles de la orden
-            const skuInfo = window.ordenesService.getSkuInfo(numeroOrdenCompra, vendorSkuFactura);
-            
-            if (skuInfo) {
-                console.log(`✅ Coincidencia exacta encontrada para SKU: ${vendorSkuFactura}`);
-                return skuInfo;
-            }
-
-            console.log(`No hay coincidencia exacta para SKU: ${vendorSkuFactura} en orden: ${numeroOrdenCompra}`);
-            return null;
-
-        } catch (error) {
-            console.error('Error en ValidateSkuSelectionUseCase:', error);
-            return this.fallbackValidation(vendorSkuFactura, numeroOrdenCompra);
+        // Verificar que los servicios estén disponibles
+        if (!window.ordenesService) {
+            throw new Error('OrdenesService no está disponible - verificar carga de Data Services');
         }
-    }
 
-    /**
-     * Método de fallback si los servicios no están disponibles
-     * @param {string} vendorSkuFactura - SKU del vendor desde la factura
-     * @param {string} numeroOrdenCompra - Número de orden de compra
-     * @returns {Object|null} Información del SKU o null
-     */
-    fallbackValidation(vendorSkuFactura, numeroOrdenCompra) {
-        try {
-            // Acceso directo a localStorage como fallback
-            const ordenesData = localStorage.getItem('poc_data_ordenes');
-            if (!ordenesData) return null;
-
-            const ordenes = JSON.parse(ordenesData);
-            const ordenCorrespondiente = ordenes.find(o => o.sapOrderId === numeroOrdenCompra);
-            
-            if (!ordenCorrespondiente || !ordenCorrespondiente.details) {
-                return null;
-            }
-
-            const coincidencia = ordenCorrespondiente.details.find(detail =>
-                detail.vendorSku === vendorSkuFactura
-            );
-
-            if (coincidencia) {
-                return {
-                    value: coincidencia.vendorSku,
-                    text: coincidencia.vendorSku,
-                    description: coincidencia.item?.title || 'Sin descripción',
-                    unitPrice: coincidencia.unitPrice,
-                    materialId: coincidencia.materialId,
-                    quantity: coincidencia.quantity,
-                    esCoincidenciaExacta: true
-                };
-            }
-
-            return null;
-        } catch (error) {
-            console.error('Error en fallback validation:', error);
+        // Buscar la orden correspondiente
+        const ordenCorrespondiente = window.ordenesService.findBySapOrderId(numeroOrdenCompra);
+        
+        if (!ordenCorrespondiente) {
+            console.log(`No se encontró orden con SAP Order ID: ${numeroOrdenCompra}`);
             return null;
         }
+
+        // Buscar coincidencia exacta en los detalles de la orden
+        const skuInfo = window.ordenesService.getSkuInfo(numeroOrdenCompra, vendorSkuFactura);
+        
+        if (skuInfo) {
+            console.log(`✅ Coincidencia exacta encontrada para SKU: ${vendorSkuFactura}`);
+            return skuInfo;
+        }
+
+        console.log(`No hay coincidencia exacta para SKU: ${vendorSkuFactura} en orden: ${numeroOrdenCompra}`);
+        return null;
     }
+
+
 
     /**
      * Valida si un SKU está disponible para selección
@@ -97,7 +50,7 @@ class ValidateSkuSelectionUseCase {
      */
     isSkuAvailable(numeroOrdenCompra, vendorSku, excludeSkus = []) {
         if (!window.ordenesService) {
-            return true; // Fallback permisivo
+            throw new Error('OrdenesService no está disponible - verificar carga de Data Services');
         }
 
         // Verificar que el SKU existe en la orden

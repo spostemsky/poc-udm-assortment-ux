@@ -3,9 +3,8 @@
  * Crea contenedores de UI dinámicos por cada ítem de una factura
  */
 class GenerateContainersForFacturaUseCase {
-    constructor(facturasRepository, ordenesRepository) {
-        this.facturasRepository = facturasRepository;
-        this.ordenesRepository = ordenesRepository;
+    constructor(facturasService) {
+        this.facturasService = facturasService;
     }
 
     /**
@@ -17,7 +16,7 @@ class GenerateContainersForFacturaUseCase {
         console.log(`🏗️ Generando contenedores para factura: ${externalId}`);
 
         // Obtener items de la factura
-        const itemsFactura = this.facturasRepository.getItemsByExternalId(externalId);
+        const itemsFactura = this.facturasService.getItemsByExternalId(externalId);
         
         if (itemsFactura.length === 0) {
             console.warn(`⚠️ No se encontraron items para factura: ${externalId}`);
@@ -90,6 +89,15 @@ class GenerateContainersForFacturaUseCase {
 
             // Agregar al DOM
             wrapper.appendChild(newContainer);
+
+            // 🚀 CRÍTICO: Inicializar contenedor (Business Rules Engine + UI)
+            // Esta función debe estar disponible globalmente desde formulario.js
+            if (typeof window.inicializarContenedor === 'function') {
+                window.inicializarContenedor(newContainer, index, item.identificadorItem);
+                console.log(`🎯 Contenedor inicializado con Business Rules para ítem: ${item.identificadorItem}`);
+            } else {
+                console.warn(`⚠️ inicializarContenedor no disponible para ítem: ${item.identificadorItem}`);
+            }
 
             console.log(`📦 Contenedor creado para ítem: ${item.identificadorItem}`);
 
@@ -184,7 +192,7 @@ class GenerateContainersForFacturaUseCase {
      * @returns {Object} Resultado de la validación
      */
     validateGeneration(externalId) {
-        const itemsFactura = this.facturasRepository.getItemsByExternalId(externalId);
+        const itemsFactura = this.facturasService.getItemsByExternalId(externalId);
         const currentContainers = this.getCurrentContainers();
 
         const isValid = itemsFactura.length === currentContainers.length;
@@ -207,13 +215,29 @@ class GenerateContainersForFacturaUseCase {
         return {
             name: 'GenerateContainersForFacturaUseCase',
             description: 'Genera contenedores dinámicos para cada ítem de una factura',
-            dependencies: ['FacturasRepository', 'OrdenesRepository', 'DOM']
+            dependencies: ['FacturasService', 'DOM', 'inicializarContenedor']
         };
     }
 }
 
-// Crear instancia global
-window.generateContainersForFacturaUseCase = new GenerateContainersForFacturaUseCase(
-    window.facturasRepository,
-    window.ordenesRepository
-);
+// 🚀 INICIALIZACIÓN SIMPLIFICADA: Crear instancia lazy cuando se necesite
+// La instancia se creará automáticamente cuando se acceda por primera vez
+Object.defineProperty(window, 'generateContainersForFacturaUseCase', {
+    get: function() {
+        // Si ya existe la instancia, devolverla
+        if (this._generateContainersInstance) {
+            return this._generateContainersInstance;
+        }
+        
+        // Verificar que facturasService esté disponible (SIN FALLBACKS)
+        if (!window.facturasService) {
+            throw new Error('facturasService no está disponible para GenerateContainersForFacturaUseCase');
+        }
+        
+        // Crear y cachear la instancia
+        console.debug('🏗️ GenerateContainersForFacturaUseCase inicializado');
+        this._generateContainersInstance = new GenerateContainersForFacturaUseCase(window.facturasService);
+        return this._generateContainersInstance;
+    },
+    configurable: true
+});

@@ -1,21 +1,23 @@
 // Integración con localStorage - reemplaza Google Apps Script
-let datosGlobales = null;
-let datosFacturasGlobales = null;
 let cargandoDatos = false;
 let estadosContenedores = {}; // Para guardar estados por factura
 
 // Business Rules Engine
 let businessRulesInitialized = false;
 
-// Funciones de compatibilidad para acceder a datos JSON del localStorage
+// Funciones de acceso a datos - MIGRADO A DATA SERVICES (SIN FALLBACKS)
 function getDatosOrdenes() {
-    const data = localStorage.getItem('poc_data_ordenes');
-    return data ? JSON.parse(data) : [];
+    if (!window.ordenesService) {
+        throw new Error('OrdenesService no está disponible - verificar carga de Data Services');
+    }
+    return window.ordenesService.getAll();
 }
 
 function getDatosFacturas() {
-    const data = localStorage.getItem('poc_data_facturas');
-    return data ? JSON.parse(data) : [];
+    if (!window.facturasService) {
+        throw new Error('FacturasService no está disponible - verificar carga de Data Services');
+    }
+    return window.facturasService.getAll();
 }
 
 // =============================================================================
@@ -91,8 +93,7 @@ function actualizarDropdownFacturas(facturasData = null) {
         selectFacturas.innerHTML = '<option value="">No hay facturas válidas</option>';
     }
     
-    // Actualizar datos globales
-    datosFacturasGlobales = datosFacturas;
+    // Los datos ahora se acceden directamente via FacturasService
 }
 
 /**
@@ -411,7 +412,6 @@ function cargarDatosIniciales() {
     try {
         const datosOrdenes = getDatosOrdenes();
         console.log('Datos de órdenes cargados desde localStorage:', datosOrdenes.length, 'registros');
-        datosGlobales = datosOrdenes;
         datosOrdenesCompletos = true;
         verificarCargaCompleta();
     } catch (error) {
@@ -551,109 +551,99 @@ function eliminarSeccion(button) {
 }
 
 function actualizarOpciones() {
-    if (datosGlobales) {
-        // Usar datos ya cargados
-        procesarOpciones(datosGlobales);
-    } else {
-        // Si no hay datos globales, cargarlos desde localStorage
-        try {
-            const datos = getDatosOrdenes();
-            datosGlobales = datos;
-            procesarOpciones(datos);
-        } catch (error) {
-            console.error('Error cargando datos de órdenes:', error);
-        }
+    // MIGRADO: Ya no necesita parámetros ni gestión de datosGlobales
+    try {
+        procesarOpciones();
+    } catch (error) {
+        console.error('Error procesando opciones:', error);
     }
 }
 
-function procesarOpciones(datos) {
-    // Obtener el external_id de la factura actual
+// 🚀 Función para procesar opciones de SKU - CLEAN ARCHITECTURE
+function procesarOpciones() {
+    console.log('🎯 Iniciando procesamiento de opciones de SKU');
+    
+    // OBTENER DATOS BÁSICOS
+    const external_id_actual = obtenerFacturaActual();
+    const numeroOrdenCompra = obtenerOrdenDeCompraDeFactura(external_id_actual);
+    
+    console.log(`Factura ${external_id_actual} está asociada a la OC ${numeroOrdenCompra}`);
+    
+    // OBTENER SECCIONES ACTIVAS
+    const allSections = document.querySelectorAll('.container:not(.item-container-template) .sections-container .section[style*="block"]');
+    
+    // PROCESAR CADA SECCIÓN INDIVIDUALMENTE
+    allSections.forEach(section => {
+        procesarSeccionIndividual(section, numeroOrdenCompra, allSections);
+    });
+    
+    console.log(`✅ Procesadas ${allSections.length} secciones de SKU`);
+}
+
+// 🎯 Función auxiliar para obtener factura actual
+function obtenerFacturaActual() {
     const selectFacturas = document.getElementById('invoice-select');
     const external_id_actual = selectFacturas ? selectFacturas.value : null;
     
     if (!external_id_actual) {
-        console.error('No se puede determinar la factura actual');
+        throw new Error('No se puede determinar la factura actual');
+    }
+    
+    return external_id_actual;
+}
+
+// 🎯 Función para procesar una sección individual usando Use Case
+function procesarSeccionIndividual(section, numeroOrdenCompra, allSections) {
+    // SALTAR SECCIONES CON SKU FORZADO (Business Rules)
+    if (section.hasAttribute('data-sku-forzado')) {
+        console.log('Saltando sección con SKU forzado:', section.getAttribute('data-sku-forzado'));
         return;
     }
     
-    // Obtener el número de orden de compra asociada a esta factura
-    const numeroOrdenCompra = obtenerOrdenDeCompraDeFactura(external_id_actual);
-    console.log(`Factura ${external_id_actual} está asociada a la OC ${numeroOrdenCompra}`);
+    const dropdown = section.querySelector('.custom-dropdown');
+    const valorActual = dropdown.getAttribute('data-value') || '';
     
-    if (!numeroOrdenCompra) {
-        console.error('No se encontró orden de compra para la factura actual');
+    // OBTENER SKUS SELECCIONADOS EN OTRAS SECCIONES
+    const skusSeleccionados = obtenerSkusSeleccionadosEnOtrasSecciones(allSections, section);
+    
+    // 🎯 USAR USE CASE para obtener opciones filtradas
+    if (!window.getAvailableSkusForOrdenUseCase) {
+        throw new Error('GetAvailableSkusForOrdenUseCase no está disponible - verificar carga de Use Cases');
+    }
+    
+    const result = window.getAvailableSkusForOrdenUseCase.execute(numeroOrdenCompra, skusSeleccionados, valorActual);
+    
+    if (!result.success) {
+        console.error(`Error obteniendo SKUs para sección: ${result.message}`);
         return;
     }
     
-    // Filtrar datos de Ordenes para obtener solo los SKUs de la OC correspondiente
-    const skusPermitidos = [];
+    // ACTUALIZAR UI
+    populateCustomDropdown(dropdown, result.availableOptions, valorActual);
     
-    // Buscar la orden que coincida con el sap_order_id
-    const ordenCorrespondiente = datos.find(orden => orden.sapOrderId === numeroOrdenCompra);
-    
-    if (ordenCorrespondiente && ordenCorrespondiente.details) {
-        ordenCorrespondiente.details.forEach(detail => {
-            skusPermitidos.push({
-                value: detail.vendorSku,                    // vendorSku de la orden
-                text: detail.vendorSku,                     // mostrar vendorSku
-                description: detail.item.title,             // título del item como descripción
-                unitPrice: detail.unitPrice,               // precio unitario para validaciones futuras
-                materialId: detail.materialId,             // ID del material
-                quantity: detail.quantity                  // cantidad de la orden
-            });
-        });
+    // Actualizar descripción si hay una opción seleccionada
+    if (valorActual) {
+        actualizarDescripcionProducto(dropdown);
     }
+}
+
+// 🎯 Función auxiliar para obtener SKUs seleccionados en otras secciones
+function obtenerSkusSeleccionadosEnOtrasSecciones(allSections, seccionActual) {
+    const skusSeleccionados = [];
     
-    console.log(`SKUs permitidos para OC ${numeroOrdenCompra}:`, skusPermitidos);
-    
-    // Obtener todos los valores seleccionados actualmente de TODOS los contenedores
-    const allSections = document.querySelectorAll('.container:not(.item-container-template) .sections-container .section[style*="block"]');
-    const valoresSeleccionados = [];
     allSections.forEach(section => {
+        // Saltar la sección actual
+        if (section === seccionActual) return;
+        
         const dropdown = section.querySelector('.custom-dropdown');
         const selectedValue = dropdown.getAttribute('data-value');
+        
         if (selectedValue && selectedValue !== 'Otro') {
-            valoresSeleccionados.push(selectedValue);
+            skusSeleccionados.push(selectedValue);
         }
     });
     
-    // Actualizar cada dropdown en todos los contenedores
-    allSections.forEach(section => {
-        // *** NUEVA VALIDACIÓN: Saltar secciones con SKU forzado ***
-        if (section.hasAttribute('data-sku-forzado')) {
-            console.log('Saltando sección con SKU forzado:', section.getAttribute('data-sku-forzado'));
-            return;
-        }
-        
-        const dropdown = section.querySelector('.custom-dropdown');
-        const valorActual = dropdown.getAttribute('data-value') || '';
-        
-        // Preparar opciones filtradas por OC
-        const options = [];
-        
-        // Agregar solo los SKUs permitidos para esta OC
-        skusPermitidos.forEach(sku => {
-            // Solo agregar la opción si no está seleccionada en otra card o es el valor actual
-            if (sku.value === valorActual || !valoresSeleccionados.includes(sku.value)) {
-                options.push(sku);
-            }
-        });
-        
-        // Agregar "Otro" siempre al final (hardcodeado)
-        options.push({
-            value: 'Otro',
-            text: 'Otro',
-            description: ''
-        });
-
-        // Poblar el dropdown personalizado
-        populateCustomDropdown(dropdown, options, valorActual);
-        
-        // Actualizar descripción si hay una opción seleccionada
-        if (valorActual) {
-            actualizarDescripcionProducto(dropdown);
-        }
-    });
+    return skusSeleccionados;
 }
 
 
@@ -1178,8 +1168,7 @@ function cargarDatosFacturasSinMostrar(callback) {
         const datosFacturas = getDatosFacturas();
         console.log('Datos completos de facturas recibidos:', datosFacturas.length, 'registros');
         
-        // Guardar todos los datos globalmente
-        datosFacturasGlobales = datosFacturas;
+        // Los datos ahora se acceden directamente via FacturasService
         
         // Procesar external_ids únicos para el dropdown
         const facturasUnicas = [];
@@ -1233,55 +1222,22 @@ function cargarDatosFacturasSinMostrar(callback) {
 
 // Función para obtener el número de orden de compra de una factura (usando external_id)
 function obtenerOrdenDeCompraDeFactura(external_id) {
-    if (!datosFacturasGlobales) {
-        console.error('Datos de facturas no están cargados');
-        return null;
+    if (!window.facturasService) {
+        throw new Error('FacturasService no está disponible - verificar carga de Data Services');
     }
     
-    // Buscar la factura por external_id para obtener el sap_order_id
-    const factura = datosFacturasGlobales.find(f => f.external_id === external_id);
-    if (factura) {
-        return factura.sap_order_id;
-    }
-    
-    return null;
+    return window.facturasService.getSapOrderId(external_id);
 }
 
 // Función para obtener los ítems de una factura específica (usando external_id)
 function obtenerItemsDeFactura(external_id) {
-    if (!datosFacturasGlobales) {
-        console.error('Datos de facturas no están cargados');
-        return [];
+    if (!window.facturasService) {
+        throw new Error('FacturasService no está disponible - verificar carga de Data Services');
     }
     
-    // Buscar la factura por external_id
-    const factura = datosFacturasGlobales.find(f => f.external_id === external_id);
-    if (!factura) {
-        console.error(`No se encontró factura con external_id: ${external_id}`);
-        return [];
-    }
-    
-    const itemsFactura = [];
-    
-    // Procesar todos los detalles de la factura
-    if (factura.details && Array.isArray(factura.details)) {
-        factura.details.forEach((detail, index) => {
-            itemsFactura.push({
-                external_id: factura.external_id,
-                identificadorItem: detail.vendor_sku,    // vendor_sku del detalle
-                cantidad: detail.quantity,              // cantidad del detalle
-                precioUnitario: detail.unit_amount,     // precio unitario del detalle
-                descripcion: detail.description,        // descripción del detalle
-                sap_order_id: factura.sap_order_id,     // sap_order_id de la factura
-                // Campos adicionales para validaciones futuras
-                ean: detail.ean,
-                detailId: detail.id
-            });
-        });
-    }
-    
-    console.log(`Ítems encontrados para factura ${external_id}:`, itemsFactura);
-    return itemsFactura;
+    const items = window.facturasService.getItemsByExternalId(external_id);
+    console.log(`Ítems encontrados para factura ${external_id}:`, items);
+    return items;
 }
 
 // Función para guardar el estado actual de todos los contenedores
@@ -1326,90 +1282,55 @@ function guardarEstadosContenedores(numeroFactura) {
     console.log(`Estados guardados para factura ${numeroFactura}:`, estados);
 }
 
-// Función para verificar si un vendor_sku de factura coincide exactamente con algún vendorSku de la orden
+// Función para verificar si un vendor_sku de factura coincide exactamente con algún vendorSku de la orden - OPTIMIZADO
 function verificarCoincidenciaExacta(vendorSkuFactura, numeroOrdenCompra) {
-    if (!datosGlobales || !vendorSkuFactura || !numeroOrdenCompra) {
+    if (!vendorSkuFactura || !numeroOrdenCompra) {
         return null;
     }
     
-    // Buscar la orden correspondiente
-    const ordenCorrespondiente = datosGlobales.find(orden => orden.sapOrderId === numeroOrdenCompra);
-    
-    if (!ordenCorrespondiente || !ordenCorrespondiente.details) {
-        return null;
+    // OPTIMIZADO: Usar Use Case especializado para validación de SKU
+    if (!window.validateSkuSelectionUseCase) {
+        throw new Error('ValidateSkuSelectionUseCase no está disponible - verificar carga de Use Cases');
     }
     
-    // Buscar coincidencia exacta en los detalles de la orden
-    const coincidencia = ordenCorrespondiente.details.find(detail => 
-        detail.vendorSku === vendorSkuFactura
-    );
-    
-    if (coincidencia) {
-        return {
-            value: coincidencia.vendorSku,
-            text: coincidencia.vendorSku,
-            description: coincidencia.item.title,
-            unitPrice: coincidencia.unitPrice,
-            materialId: coincidencia.materialId,
-            quantity: coincidencia.quantity,
-            esCoincidenciaExacta: true
-        };
-    }
-    
-    return null;
+    return window.validateSkuSelectionUseCase.execute(vendorSkuFactura, numeroOrdenCompra);
 }
 
 
 
 
 
-// Función para crear contenedores por cada ítem de la factura
+// 🚀 Función para crear contenedores por cada ítem de la factura - CLEAN ARCHITECTURE
 function crearContenedoresPorItem(itemsFactura) {
-    console.log('Creando contenedores para ítems:', itemsFactura);
+    console.log('🏗️ Iniciando creación de contenedores para ítems:', itemsFactura.length);
     
-    const containersWrapper = document.getElementById('containers-wrapper');
-    const template = containersWrapper.querySelector('.item-container-template');
+    // VALIDACIÓN: Use Case debe estar disponible (SIN FALLBACKS)
+    if (!window.generateContainersForFacturaUseCase) {
+        throw new Error('GenerateContainersForFacturaUseCase no está disponible - verificar carga de Use Cases');
+    }
     
-    // Limpiar contenedores existentes (excepto el template)
-    const existingContainers = containersWrapper.querySelectorAll('.container:not(.item-container-template)');
-    existingContainers.forEach(container => container.remove());
+    // OBTENER external_id de la factura actual
+    const selectFacturas = document.getElementById('invoice-select');
+    const external_id_actual = selectFacturas ? selectFacturas.value : null;
     
-    // Crear un contenedor por cada ítem
-    itemsFactura.forEach((item, index) => {
-        const newContainer = template.cloneNode(true);
-        newContainer.classList.remove('item-container-template');
-        newContainer.style.display = 'block';
-        
-        // Actualizar título y descripción
-        const titleElement = newContainer.querySelector('.item-title');
-        const descriptionElement = newContainer.querySelector('.item-description');
-        
-        titleElement.textContent = `SKU en la factura: #${item.identificadorItem}`;
-        descriptionElement.textContent = item.descripcion || 'Sin descripción disponible';
-        
-        // Asignar IDs únicos para evitar conflictos
-        const containerId = `item-container-${index}`;
-        newContainer.id = containerId;
-        
-        // Actualizar IDs de elementos internos para que sean únicos
-        const multipleProductsSelect = newContainer.querySelector('.multiple-products-select');
-        const sectionsContainer = newContainer.querySelector('.sections-container');
-        const addButton = newContainer.querySelector('.add-button');
-        
-        multipleProductsSelect.id = `multiple-products-select-${index}`;
-        sectionsContainer.id = `sections-container-${index}`;
-        
-        // Inicializar el contenedor
-        inicializarContenedor(newContainer, index, item.identificadorItem);
-        
-        // Agregar al wrapper
-        containersWrapper.appendChild(newContainer);
-        
-        console.log(`Contenedor creado para ítem: ${item.identificadorItem}`);
-    });
+    if (!external_id_actual) {
+        throw new Error('No se puede determinar external_id de la factura actual');
+    }
     
-    console.log(`Se crearon ${itemsFactura.length} contenedores`);
+    console.log(`🎯 Usando Use Case para factura: ${external_id_actual}`);
+    
+    // 🎯 USAR USE CASE para generar contenedores (SIN FALLBACKS)
+    const result = window.generateContainersForFacturaUseCase.execute(external_id_actual);
+    
+    if (!result.success) {
+        throw new Error(`Error en Use Case: ${result.message}`);
+    }
+    
+    console.log(`✅ Use Case completado: ${result.containers.length} contenedores creados`);
+    return true;
 }
+
+
 
 // Función para restaurar el estado de los contenedores
 function restaurarEstadosContenedores(numeroFactura) {
@@ -1522,6 +1443,7 @@ function restaurarEstadosContenedores(numeroFactura) {
 }
 
 // Función para inicializar un contenedor individual
+// 🌐 GLOBAL: Disponible para Use Cases
 function inicializarContenedor(container, index, itemId) {
     const multipleProductsSelect = container.querySelector('.multiple-products-select');
     const addButton = container.querySelector('.add-button');
@@ -1592,6 +1514,9 @@ function inicializarContenedor(container, index, itemId) {
         console.log(`✅ Contenedor ${index} inicializado con fallback completo`);
     }
 }
+
+// 🌐 Exponer función globalmente para Use Cases
+window.inicializarContenedor = inicializarContenedor;
 
 // Función para mostrar contenedores de la primera factura al cargar
 function mostrarContenedoresPrimeraFactura() {
@@ -1739,7 +1664,12 @@ function verificarCoincidenciaExacta(vendorSkuFactura, numeroOrdenCompra) {
 
 
 document.addEventListener('DOMContentLoaded', async function() {
-    // 🚀 INICIALIZAR BUSINESS RULES ENGINE PRIMERO
+    console.log('🚀 Iniciando aplicación...');
+    
+    // ⏳ ESPERAR A QUE DATA SERVICES ESTÉN LISTOS
+    await esperarDataServices();
+    
+    // 🚀 INICIALIZAR BUSINESS RULES ENGINE
     await inicializarBusinessRulesEngine();
     
     // Iniciar la carga de datos al cargar la página (ahora incluye facturas)
@@ -1754,6 +1684,34 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 🔔 NUEVA INTEGRACIÓN: Configurar event listeners del Data Manager
     inicializarIntegracionDataManager();
     
-    // 🧪 PRUEBA DIRECTA: Polling de localStorage para detectar cambios
+    // 🔄 FALLBACK: Polling de localStorage para detectar cambios (si eventos fallan)
     iniciarPollingFacturas();
 });
+
+/**
+ * Espera a que los Data Services y Use Cases estén cargados y listos
+ */
+async function esperarDataServices() {
+    console.log('⏳ Esperando Data Services y Use Cases...');
+    
+    let attempts = 0;
+    const maxAttempts = 50; // 5 segundos máximo
+    
+    while (attempts < maxAttempts) {
+        // Verificar Data Services
+        const servicesReady = window.servicesLoader && window.servicesLoader.isLoaded();
+        
+        // Verificar Use Cases (generateContainersForFacturaUseCase se crea lazy, no necesita verificación)
+        const useCasesReady = window.validateSkuSelectionUseCase && window.getAvailableSkusUseCase;
+        
+        if (servicesReady && useCasesReady) {
+            console.log('✅ Data Services y Use Cases listos');
+            return;
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+    }
+    
+    throw new Error('❌ Data Services o Use Cases no se cargaron en el tiempo esperado');
+}

@@ -7,10 +7,10 @@ class ServicesLoader {
         this.loaded = false;
         this.services = {};
         this.filesToLoad = [
-            'shared/services/facturas-service.js',
-            'shared/services/ordenes-service.js',
-            'shared/services/ofertas-service.js',
-            'shared/services/equivalencias-service.js'
+            '../shared/services/facturas-service.js',
+            '../shared/services/ordenes-service.js',
+            '../shared/services/ofertas-service.js',
+            '../shared/services/equivalencias-service.js'
         ];
     }
 
