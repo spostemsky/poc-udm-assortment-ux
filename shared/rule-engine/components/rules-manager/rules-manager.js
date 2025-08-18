@@ -181,6 +181,87 @@ class RulesManager {
     }
 
     /**
+     * 🔄 Actualizar solo una regla específica (mantiene expansión)
+     */
+    updateSpecificRule(ruleId) {
+        const ruleElement = this.containerElement.querySelector(`[data-rule-id="${ruleId}"]`);
+        if (!ruleElement) {
+            console.warn(`⚠️ No se encontró elemento para regla ${ruleId}, fallback a re-render completo`);
+            this.renderContentPreservingExpansion();
+            return;
+        }
+        
+        // Preservar estado expandido ANTES de cualquier cambio
+        const wasExpanded = this.expandedRules.has(ruleId);
+        const hasExpandedClass = ruleElement.classList.contains('expanded');
+        
+        // Obtener estado actualizado de la regla
+        const updatedRule = this.stateManager.getRuleEffectiveState(ruleId);
+        
+        // NUEVO ENFOQUE: Actualizar solo partes específicas sin reemplazar todo el elemento
+        this.updateRuleToggleState(ruleElement, updatedRule);
+        this.updateRuleActions(ruleElement, updatedRule);
+        
+        // Forzar mantenimiento del estado expandido
+        if (wasExpanded || hasExpandedClass) {
+            this.expandedRules.add(ruleId);
+            ruleElement.classList.add('expanded');
+        }
+    }
+    
+    /**
+     * 🔄 Actualizar solo el estado del toggle de la regla
+     */
+    updateRuleToggleState(ruleElement, rule) {
+        const toggleElement = ruleElement.querySelector('.rules-toggle');
+        if (toggleElement) {
+            if (rule.active) {
+                toggleElement.classList.add('active');
+                ruleElement.classList.add('active');
+                ruleElement.classList.remove('inactive');
+            } else {
+                toggleElement.classList.remove('active');
+                ruleElement.classList.remove('active');
+                ruleElement.classList.add('inactive');
+            }
+        }
+    }
+    
+    /**
+     * 🔄 Actualizar solo las acciones de la regla
+     */
+    updateRuleActions(ruleElement, rule) {
+        const actionsContainer = ruleElement.querySelector('.rules-actions-list');
+        if (actionsContainer && rule.actions) {
+            // Usar el método getActionHTML existente para mantener consistencia
+            const actionsHTML = rule.actions.map((action, index) => 
+                this.getActionHTML(rule.id, action, index)
+            ).join('');
+            
+            actionsContainer.innerHTML = actionsHTML;
+        }
+    }
+
+    /**
+     * 🎨 Renderizar contenido preservando estado expandido
+     */
+    renderContentPreservingExpansion() {
+        // Guardar reglas actualmente expandidas
+        const currentlyExpanded = new Set(this.expandedRules);
+        // Re-renderizar contenido normal
+        this.renderContent();
+        
+        // Restaurar estado expandido después del re-render
+        currentlyExpanded.forEach(ruleId => {
+            const ruleElement = this.containerElement.querySelector(`[data-rule-id="${ruleId}"]`);
+            if (ruleElement) {
+                this.expandedRules.add(ruleId);
+                ruleElement.classList.add('expanded');
+            }
+        });
+    }
+
+    /**
      * 🎨 Renderizar contenido principal (categorías y reglas)
      */
     renderContent() {
@@ -409,8 +490,8 @@ class RulesManager {
         // Guardar estado
         this.stateManager.saveRuleState(ruleId, newActive);
         
-        // Re-renderizar
-        this.renderContent();
+        // Actualizar solo la regla específica sin re-render completo
+        this.updateSpecificRule(ruleId);
         
         // Aplicar cambios al engine
         this.applyRuleChanges(ruleId);
@@ -442,8 +523,8 @@ class RulesManager {
         // Verificar si todas las acciones están inactivas
         this.checkAndUpdateRuleState(ruleId);
         
-        // Re-renderizar
-        this.renderContent();
+        // Actualizar solo la regla específica sin re-render completo
+        this.updateSpecificRule(ruleId);
         
         // Aplicar cambios al engine
         this.applyRuleChanges(ruleId);
