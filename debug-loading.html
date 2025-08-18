@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Debug Loading - Análisis Profundo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 10px; background: #f5f5f5; }
+        .timeline { background: white; padding: 20px; border-radius: 8px; margin: 10px 0; }
+        .step { 
+            padding: 8px; 
+            margin: 4px 0; 
+            border-left: 4px solid #ddd; 
+            background: #f9f9f9;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .step.loading { border-color: #ffc107; background: #fff3cd; }
+        .step.success { border-color: #28a745; background: #d4edda; }
+        .step.error { border-color: #dc3545; background: #f8d7da; }
+        .step.warning { border-color: #fd7e14; background: #ffeaa7; }
+        .timestamp { color: #666; font-weight: bold; }
+        .details { margin-left: 20px; color: #555; }
+        h1 { color: #333; }
+        .summary { background: #e9ecef; padding: 15px; border-radius: 8px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Loading - Análisis Profundo de Carga</h1>
+    
+    <div class="summary" id="summary">
+        <strong>Estado:</strong> <span id="status">Iniciando análisis...</span><br>
+        <strong>Tiempo transcurrido:</strong> <span id="elapsed">0.0s</span><br>
+        <strong>Archivos cargados:</strong> <span id="files-loaded">0</span><br>
+        <strong>Reglas encontradas:</strong> <span id="rules-found">0</span>
+    </div>
+    
+    <div class="timeline" id="timeline">
+        <h3>📋 Timeline de Carga</h3>
+        <div id="steps"></div>
+    </div>
+
+    <script>
+        const startTime = Date.now();
+        let filesLoaded = 0;
+        let rulesFound = 0;
+        
+        function getElapsed() {
+            return ((Date.now() - startTime) / 1000).toFixed(2);
+        }
+        
+        function addStep(message, type = 'loading', details = null) {
+            const step = document.createElement('div');
+            step.className = `step ${type}`;
+            
+            let content = `<span class="timestamp">[+${getElapsed()}s]</span> ${message}`;
+            if (details) {
+                content += `<div class="details">${details}</div>`;
+            }
+            step.innerHTML = content;
+            
+            document.getElementById('steps').appendChild(step);
+            updateSummary();
+            
+            // Auto scroll
+            step.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+        
+        function updateSummary() {
+            document.getElementById('elapsed').textContent = getElapsed() + 's';
+            document.getElementById('files-loaded').textContent = filesLoaded;
+            document.getElementById('rules-found').textContent = rulesFound;
+        }
+        
+        // Interceptar console.log para capturar información
+        const originalLog = console.log;
+        console.log = function(...args) {
+            const message = args.join(' ');
+            
+            // Detectar patrones específicos
+            if (message.includes('Script cargado:')) {
+                filesLoaded++;
+                addStep(`📄 ${message}`, 'success');
+            } else if (message.includes('Error') || message.includes('💥')) {
+                addStep(`❌ ${message}`, 'error');
+            } else if (message.includes('⚠️') || message.includes('WARN')) {
+                addStep(`⚠️ ${message}`, 'warning');
+            } else if (message.includes('✅') || message.includes('SUCCESS')) {
+                addStep(`✅ ${message}`, 'success');
+            } else if (message.includes('reglas')) {
+                // Intentar extraer número de reglas
+                const match = message.match(/(\d+)\s+reglas?/);
+                if (match) {
+                    rulesFound = parseInt(match[1]);
+                }
+                addStep(`📋 ${message}`, 'success');
+            } else {
+                addStep(`ℹ️ ${message}`, 'loading');
+            }
+            
+            // Llamar al console original
+            originalLog.apply(console, args);
+        };
+        
+        // Interceptar errores globales
+        window.addEventListener('error', (event) => {
+            addStep(`💥 ERROR GLOBAL: ${event.message}`, 'error', 
+                   `Archivo: ${event.filename}:${event.lineno}`);
+        });
+        
+        // Monitorear carga de scripts
+        const originalCreateElement = document.createElement;
+        document.createElement = function(tagName) {
+            const element = originalCreateElement.call(document, tagName);
+            
+            if (tagName.toLowerCase() === 'script') {
+                element.addEventListener('load', () => {
+                    if (element.src) {
+                        addStep(`📥 Script cargado: ${element.src.split('/').pop()}`, 'success');
+                    }
+                });
+                
+                element.addEventListener('error', () => {
+                    if (element.src) {
+                        addStep(`💥 Error cargando script: ${element.src.split('/').pop()}`, 'error');
+                    }
+                });
+            }
+            
+            return element;
+        };
+        
+        // Iniciar análisis
+        addStep('🚀 Iniciando análisis de carga del formulario...', 'loading');
+        
+        // Monitorear window.businessRulesEngine
+        let engineCheckInterval = setInterval(() => {
+            if (window.businessRulesEngine) {
+                addStep('🎯 window.businessRulesEngine detectado!', 'success');
+                
+                try {
+                    const info = window.businessRulesEngine.getRulesInfo();
+                    addStep(`📊 Información del motor: ${info.totalRules} reglas totales`, 'success',
+                           `Activas: ${info.activeRules.length}, Inactivas: ${info.totalRules - info.activeRules.length}`);
+                    
+                    // Verificar métodos específicos
+                    const hasSpecificMethods = 
+                        typeof window.businessRulesEngine.aplicarRestriccionesContainer === 'function' &&
+                        typeof window.businessRulesEngine.verificarCoincidenciaExacta === 'function';
+                    
+                    if (hasSpecificMethods) {
+                        addStep('✅ Métodos específicos del proyecto disponibles', 'success');
+                    } else {
+                        addStep('⚠️ Métodos específicos del proyecto NO disponibles', 'warning');
+                    }
+                    
+                } catch (error) {
+                    addStep(`💥 Error obteniendo info del motor: ${error.message}`, 'error');
+                }
+                
+                clearInterval(engineCheckInterval);
+                document.getElementById('status').textContent = 'Motor cargado - Análisis completado';
+            }
+        }, 100);
+        
+        // Timeout de seguridad
+        setTimeout(() => {
+            if (window.businessRulesEngine) {
+                addStep('✅ Análisis completado exitosamente', 'success');
+            } else {
+                addStep('❌ TIMEOUT: Motor no se cargó en 10 segundos', 'error');
+                document.getElementById('status').textContent = 'TIMEOUT - Motor no cargado';
+            }
+            clearInterval(engineCheckInterval);
+        }, 10000);
+        
+        // Monitorear localStorage para reglas
+        addStep('🔍 Verificando localStorage para reglas...', 'loading');
+        const storedRules = localStorage.getItem('business_rules_overrides');
+        if (storedRules) {
+            try {
+                const parsed = JSON.parse(storedRules);
+                addStep(`💾 Reglas en localStorage: ${Object.keys(parsed).length} overrides`, 'success');
+            } catch (error) {
+                addStep(`💥 Error parseando localStorage: ${error.message}`, 'error');
+            }
+        } else {
+            addStep('📋 No hay reglas en localStorage - usará defaults', 'loading');
+        }
+    </script>
+    
+    <!-- Cargar SimpleProjectEngine para análisis -->
+    <script src="shared/adapters/simple-project-engine.js"></script>
+</body>
+</html>

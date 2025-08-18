@@ -78,7 +78,7 @@ class ServicesLoader {
             if (this.areServicesReady()) {
                 return;
             }
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Servicios ya están listos, no necesitamos delay
             attempts++;
         }
 

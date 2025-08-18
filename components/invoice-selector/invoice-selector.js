@@ -6,7 +6,7 @@ class InvoiceSelector {
   constructor(element, options = {}) {
     this.element = element;
     this.options = {
-      dataManagerUrl: 'data-manager/data-manager.html',
+      dataManagerUrl: '../../shared/data-manager/data-manager.html',
       onInvoiceChange: null,
       ...options
     };

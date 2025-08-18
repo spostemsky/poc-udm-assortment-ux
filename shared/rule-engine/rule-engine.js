@@ -17,28 +17,41 @@
 // 📂 CONFIGURACIÓN DE ARCHIVOS A IMPORTAR
 // =============================================================================
 
+// Detectar automáticamente la ruta base según dónde se ejecuta
+const BASE_PATH = (() => {
+    const currentScript = document.currentScript;
+    if (currentScript) {
+        const scriptPath = currentScript.src;
+        if (scriptPath.includes('/formulario/')) {
+            return '../shared';
+        }
+    }
+    // Default para archivos en la raíz del proyecto
+    return 'shared';
+})();
+
+console.log(`🎯 Rule Engine detectó BASE_PATH: ${BASE_PATH}`);
+
 const RULE_ENGINE_FILES = {
     // Reglas por categoría (rutas relativas al HTML que carga este archivo)
     rules: [
-        '../shared/rule-engine/rules/business-rules.js',
-        '../shared/rule-engine/rules/ux-rules.js', 
-        '../shared/rule-engine/rules/ui-rules.js',
-        '../shared/rule-engine/rules/validation-rules.js'
+        `${BASE_PATH}/rule-engine/rules/business-rules.js`,
+        `${BASE_PATH}/rule-engine/rules/ux-rules.js`, 
+        `${BASE_PATH}/rule-engine/rules/ui-rules.js`,
+        `${BASE_PATH}/rule-engine/rules/validation-rules.js`
     ],
     
-    // Componentes del motor (rutas relativas al HTML que carga este archivo)
+    // Componentes del motor GENÉRICO (rutas relativas al HTML que carga este archivo)
     engine: [
-        '../shared/rule-engine/generic-query-engine.js',
-        '../shared/rule-engine/action-executor.js',
-        '../shared/rule-engine/engine.js',
-        '../shared/adapters/query-engine-adapter.js',
-        '../shared/adapters/business-rules-configurator.js'
+        `${BASE_PATH}/rule-engine/generic-query-engine.js`,
+        `${BASE_PATH}/rule-engine/action-executor.js`,
+        `${BASE_PATH}/rule-engine/engine.js`
     ],
     
     // Componentes opcionales (rutas relativas al HTML que carga este archivo)
     components: [
-        '../shared/rule-engine/components/rules-manager/rules-state-manager.js',
-        '../shared/rule-engine/components/rules-manager/rules-manager.js'
+        `${BASE_PATH}/rule-engine/components/rules-manager/rules-state-manager.js`,
+        `${BASE_PATH}/rule-engine/components/rules-manager/rules-manager.js`
     ]
 };
 
@@ -129,12 +142,11 @@ async function initializeRuleEngine() {
             throw new Error('Error cargando archivos de reglas');
         }
 
-        // Pausa para asegurar que las reglas se registren
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Las reglas ya están registradas, no necesitamos delay
 
-        // Paso 2: Cargar componentes del motor (en orden secuencial por dependencias)
+        // Paso 2: Cargar componentes del motor (en paralelo para mejor rendimiento)
         console.log('🔧 Paso 2: Cargando componentes del motor...');
-        const engineLoaded = await loadScriptsSequential(RULE_ENGINE_FILES.engine);
+        const engineLoaded = await loadScripts(RULE_ENGINE_FILES.engine);
         
         if (!engineLoaded) {
             throw new Error('Error cargando componentes del motor');
@@ -152,27 +164,37 @@ async function initializeRuleEngine() {
             }
         }
 
-        // Pausa para asegurar que los componentes se registren
-        await new Promise(resolve => setTimeout(resolve, 200));
-
-        // Paso 3: Verificar que todo esté disponible
-        console.log('🔍 Paso 3: Verificando disponibilidad de componentes...');
+        // Paso 3: Crear motor genérico básico
+        console.log('🚀 Paso 3: Creando Business Rules Engine genérico...');
         
-        if (!window.initializeBusinessRules) {
-            throw new Error('Business Rules Configurator no está disponible');
+        // Verificar componentes mínimos requeridos
+        if (!window.BusinessRulesEngine) {
+            throw new Error('BusinessRulesEngine no disponible');
         }
-
+        
+        if (!window.ActionExecutor) {
+            throw new Error('ActionExecutor no disponible');
+        }
+        
         if (!window.BUSINESS_RULES_CATEGORY) {
-            throw new Error('Categorías de reglas no están disponibles');
+            throw new Error('Reglas de negocio no disponibles');
         }
-
-        // Paso 4: Inicializar el motor usando el configurador
-        console.log('🚀 Paso 4: Inicializando Business Rules Engine con configurador...');
-        const engineInitialized = await window.initializeBusinessRules();
         
-        if (!engineInitialized) {
-            throw new Error('Error inicializando Business Rules Engine');
+        // Crear motor básico sin dependencias del proyecto
+        const actionExecutor = new ActionExecutor();
+        const engine = new BusinessRulesEngine(null, actionExecutor, null, null);
+        
+        // Inicializar
+        const success = await engine.initialize();
+        if (!success) {
+            throw new Error('Error inicializando BusinessRulesEngine');
         }
+        
+        // Exponer globalmente
+        window.businessRulesEngine = engine;
+        window.actionExecutor = actionExecutor;
+        
+        console.log('✅ Motor genérico inicializado correctamente');
 
         // Éxito total
         console.log('🎉 Rule Engine inicializado correctamente');

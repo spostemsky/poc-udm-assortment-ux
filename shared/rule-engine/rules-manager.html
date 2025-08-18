@@ -241,22 +241,21 @@
                     
                     onReady: (manager) => {
                         console.log('✅ Pure Rules Manager listo:', manager.getStats());
-                        console.log('🔍 Reglas disponibles:', manager.getAllRules());
+
                         
                         // CORRECCIÓN: Mejorar event delegation
                         const container = document.querySelector('#rules-manager-panel');
                         if (container) {
                             container.addEventListener('click', (e) => {
-                                console.log('🖱️ Click detectado en:', e.target);
-                                console.log('🎯 Data-action directo:', e.target.getAttribute('data-action'));
+
                                 
                                 // Buscar el elemento con data-action más cercano
                                 const actionElement = e.target.closest('[data-action]');
-                                console.log('🔍 Elemento con data-action:', actionElement);
+
                                 
                                 if (actionElement) {
                                     const action = actionElement.getAttribute('data-action');
-                                    console.log('⚡ Ejecutando acción:', action);
+
                                     
                                     // Manejar toggle-expand manualmente
                                     if (action === 'toggle-expand') {
@@ -326,7 +325,7 @@
             const allRules = {};
             
             // Debug: Ver qué está disponible en window
-            console.log('🔍 Debug window.BUSINESS_RULES_CATEGORY:', window.BUSINESS_RULES_CATEGORY);
+
             
             // Todos los archivos usan window.BUSINESS_RULES_CATEGORY con diferentes categorías
             if (window.BUSINESS_RULES_CATEGORY) {

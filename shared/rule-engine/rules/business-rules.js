@@ -136,6 +136,17 @@ window.BUSINESS_RULES_CATEGORY.business = {
         "display_text": "{{matched_vendor_sku}}",
         "message": "Match en cascada vía material_id {{material_id}}",
         "active": true
+      },
+      {
+        "type": "disable_dropdown",
+        "target": "sku_selector",
+        "visual_style": {
+          "cursor": "not-allowed",
+          "backgroundColor": "#f3f4f6",
+          "color": "#6b7280"
+        },
+        "active": false,
+        "message": "Deshabilitar el dropdown para prevenir cambios manuales (desactivado por defecto)"
       }
     ],
     

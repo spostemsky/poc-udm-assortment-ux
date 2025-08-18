@@ -556,7 +556,7 @@ function actualizarOpciones() {
     // MIGRADO: Ya no necesita parámetros ni gestión de datosGlobales
     try {
         procesarOpciones();
-    } catch (error) {
+        } catch (error) {
         console.error('Error procesando opciones:', error);
     }
 }
@@ -597,14 +597,14 @@ function obtenerFacturaActual() {
 // 🎯 Función para procesar una sección individual usando Use Case
 function procesarSeccionIndividual(section, numeroOrdenCompra, allSections) {
     // SALTAR SECCIONES CON SKU FORZADO (Business Rules)
-    if (section.hasAttribute('data-sku-forzado')) {
-        console.log('Saltando sección con SKU forzado:', section.getAttribute('data-sku-forzado'));
-        return;
-    }
-    
-    const dropdown = section.querySelector('.custom-dropdown');
-    const valorActual = dropdown.getAttribute('data-value') || '';
-    
+        if (section.hasAttribute('data-sku-forzado')) {
+            console.log('Saltando sección con SKU forzado:', section.getAttribute('data-sku-forzado'));
+            return;
+        }
+        
+        const dropdown = section.querySelector('.custom-dropdown');
+        const valorActual = dropdown.getAttribute('data-value') || '';
+        
     // OBTENER SKUS SELECCIONADOS EN OTRAS SECCIONES
     const skusSeleccionados = obtenerSkusSeleccionadosEnOtrasSecciones(allSections, section);
     
@@ -622,10 +622,10 @@ function procesarSeccionIndividual(section, numeroOrdenCompra, allSections) {
     
     // ACTUALIZAR UI
     populateCustomDropdown(dropdown, result.availableOptions, valorActual);
-    
-    // Actualizar descripción si hay una opción seleccionada
-    if (valorActual) {
-        actualizarDescripcionProducto(dropdown);
+        
+        // Actualizar descripción si hay una opción seleccionada
+        if (valorActual) {
+            actualizarDescripcionProducto(dropdown);
     }
 }
 
@@ -1472,29 +1472,29 @@ function inicializarContenedor(container, index, itemId) {
         // Si hay resultado de regla de negocio (coincidencia SKU)
         if (ruleResult && ruleResult.esCoincidenciaExacta) {
             console.log(`Coincidencia exacta encontrada para ${itemId}:`, ruleResult);
-            
-            // Agregar sección con SKU pre-seleccionado y restringido
-            if (!hayEstadosGuardados) {
+        
+        // Agregar sección con SKU pre-seleccionado y restringido
+        if (!hayEstadosGuardados) {
                 agregarSeccionAContenedor(container, true, ruleResult); // Pasar el resultado de la regla
-            }
-        } else {
-            // Comportamiento normal - no hay coincidencia exacta
-            
-            // Agregar event listener para cambios en el dropdown múltiple
-            multipleProductsSelect.addEventListener('change', function() {
-                manejarCambioMultipleProductos(container);
-            });
-            
-            // Agregar primera sección automáticamente (solo si no hay estados guardados)
-            if (!hayEstadosGuardados) {
-                agregarSeccionAContenedor(container, true); // Skip options update durante inicialización
-                
-                // Inicializar estado inicial
-                setTimeout(() => {
-                    inicializarEstadoInicialContenedor(container);
-                }, 100);
-            }
         }
+    } else {
+        // Comportamiento normal - no hay coincidencia exacta
+        
+        // Agregar event listener para cambios en el dropdown múltiple
+        multipleProductsSelect.addEventListener('change', function() {
+            manejarCambioMultipleProductos(container);
+        });
+        
+        // Agregar primera sección automáticamente (solo si no hay estados guardados)
+        if (!hayEstadosGuardados) {
+            agregarSeccionAContenedor(container, true); // Skip options update durante inicialización
+            
+            // Inicializar estado inicial
+            setTimeout(() => {
+                inicializarEstadoInicialContenedor(container);
+            }, 100);
+        }
+    }
     } else {
         console.warn('⚠️ Business Rules Engine no disponible - usando fallback completo');
         
@@ -1593,44 +1593,36 @@ async function manejarCambioFactura() {
  */
 async function inicializarBusinessRulesEngine() {
     try {
-        console.log('🚀 Esperando inicialización automática del Rule Engine...');
+        console.log('🚀 Esperando ProjectRulesEngine...');
         
-        // Esperar a que el sistema automático de rule-engine.js termine
+        // Esperar a que ProjectRulesEngine esté listo (optimizado)
         let attempts = 0;
-        const maxAttempts = 50; // 5 segundos máximo
+        const maxAttempts = 100; // Más intentos, menos delay
         
-        while (attempts < maxAttempts) {
-            // Verificar si el sistema automático ya inicializó todo
-            if (window.RULE_ENGINE && window.RULE_ENGINE.initialized && window.businessRulesEngine) {
-                businessRulesInitialized = true;
-                console.log('✅ Business Rules Engine inicializado automáticamente');
-                
-                // Mostrar información de reglas cargadas
-                const info = window.businessRulesEngine.getRulesInfo();
-                console.log('📊 Reglas activas:', info.activeRules);
-                return;
-            }
-            
-            // Esperar un poco más
-            await new Promise(resolve => setTimeout(resolve, 100));
+        while (attempts < maxAttempts && !window.businessRulesEngine) {
+            await new Promise(resolve => requestAnimationFrame(resolve));
             attempts++;
         }
         
-        // Si llegamos aquí, el sistema automático no funcionó
-        console.warn('⚠️ Sistema automático no completó la inicialización en el tiempo esperado');
-        
-        // Intentar inicializar manualmente como fallback
         if (window.businessRulesEngine) {
-            await window.businessRulesEngine.initialize();
-            businessRulesInitialized = true;
-            console.log('✅ Business Rules Engine inicializado manualmente como fallback');
+            // Verificar que tiene los métodos específicos del proyecto
+            if (typeof window.businessRulesEngine.aplicarRestriccionesContainer === 'function' &&
+                typeof window.businessRulesEngine.verificarCoincidenciaExacta === 'function') {
+                
+                businessRulesInitialized = true;
+                console.log('✅ ProjectRulesEngine listo con métodos específicos');
+                
+                const info = window.businessRulesEngine.getRulesInfo();
+                console.log('📊 Reglas activas:', info.activeRules);
+            } else {
+                console.warn('⚠️ BusinessRulesEngine disponible pero sin métodos específicos del proyecto');
+            }
         } else {
-            console.error('❌ Business Rules Engine no está disponible');
+            console.warn('⚠️ ProjectRulesEngine no se inicializó en el tiempo esperado');
         }
         
     } catch (error) {
         console.error('💥 Error inicializando Business Rules Engine:', error);
-        console.log('🔄 Business Rules Engine no disponible, sin restricciones automáticas');
     }
 }
 
@@ -1712,29 +1704,44 @@ function configurarEventListenersReglas() {
     console.log('📡 Configurando listeners de eventos de reglas...');
     
     // Listener para cambios de reglas
-    window.addEventListener('rule_toggled', (event) => {
+    window.addEventListener('rule_toggled', async (event) => {
         const { ruleId, active, rule } = event.detail;
         console.log(`📡 Evento recibido - Regla ${ruleId}: ${active}`);
         
-        // Re-aplicar reglas a contenedores existentes
-        reapplyRulesToExistingContainers();
+        // Sincronizar con Rules Manager
+        if (window.syncBusinessRulesWithManager) {
+            await window.syncBusinessRulesWithManager();
+        } else {
+            // Fallback: re-aplicar reglas directamente
+            reapplyRulesToExistingContainers();
+        }
     });
     
     // Listener para cambios de acciones
-    window.addEventListener('action_toggled', (event) => {
+    window.addEventListener('action_toggled', async (event) => {
         const { ruleId, actionIndex, active, action } = event.detail;
         console.log(`📡 Evento recibido - Acción ${ruleId}[${actionIndex}]: ${active}`);
         
-        // Re-aplicar reglas a contenedores existentes
-        reapplyRulesToExistingContainers();
+        // Sincronizar con Rules Manager
+        if (window.syncBusinessRulesWithManager) {
+            await window.syncBusinessRulesWithManager();
+        } else {
+            // Fallback: re-aplicar reglas directamente
+            reapplyRulesToExistingContainers();
+        }
     });
     
     // Listener para reset de reglas
-    window.addEventListener('rules_reset', (event) => {
+    window.addEventListener('rules_reset', async (event) => {
         console.log('📡 Evento recibido - Reset de reglas');
         
-        // Re-aplicar todas las reglas desde cero
-        reapplyRulesToExistingContainers();
+        // Sincronizar con nueva arquitectura
+        if (window.syncBusinessRulesWithManager) {
+            await window.syncBusinessRulesWithManager();
+        } else {
+            // Fallback: re-aplicar todas las reglas desde cero
+            reapplyRulesToExistingContainers();
+        }
     });
     
     console.log('✅ Listeners de eventos de reglas configurados');

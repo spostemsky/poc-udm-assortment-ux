@@ -180,6 +180,41 @@ class RulesStateManager {
     }
 
     /**
+     * ⚙️ Obtener estado efectivo de una acción específica (MÉTODO FALTANTE)
+     */
+    getActionEffectiveState(ruleId, actionIndex) {
+
+        
+        const originalRule = this.originalRules[ruleId];
+        if (!originalRule || !originalRule.actions || !originalRule.actions[actionIndex]) {
+            console.warn(`⚠️ Acción no encontrada: ${ruleId}[${actionIndex}]`);
+            return { active: true }; // Fallback
+        }
+
+        const originalAction = originalRule.actions[actionIndex];
+        const overrides = this.getOverrides();
+        
+        // Buscar override específico para esta acción (ESTRUCTURA CORREGIDA)
+        const actionOverride = overrides.rules && 
+                              overrides.rules[ruleId] && 
+                              overrides.rules[ruleId].actions && 
+                              overrides.rules[ruleId].actions[actionIndex];
+
+
+
+        const effectiveAction = {
+            ...originalAction,
+            active: actionOverride && actionOverride.active !== undefined 
+                ? actionOverride.active 
+                : (originalAction.active !== undefined ? originalAction.active : true)
+        };
+
+
+        
+        return effectiveAction;
+    }
+
+    /**
      * 📋 Obtener todas las reglas con su estado efectivo
      */
     getAllRulesEffectiveState() {

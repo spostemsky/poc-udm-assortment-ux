@@ -39,15 +39,14 @@ class ActionExecutor {
      * Ejecutar una acción específica
      */
     executeAction(action, context, variables) {
+
         // ✅ VERIFICAR SI LA ACCIÓN ESTÁ ACTIVA
         if (action.active === false) {
-            console.log(`⏸️ Saltando acción inactiva: ${action.type}`);
             return;
         }
 
         const handler = this.actionHandlers.get(action.type);
         if (handler) {
-            console.log(`🎬 Ejecutando acción: ${action.type}`);
             handler(action, context, variables);
         } else {
             console.warn(`⚠️ Tipo de acción no soportado: ${action.type}`);

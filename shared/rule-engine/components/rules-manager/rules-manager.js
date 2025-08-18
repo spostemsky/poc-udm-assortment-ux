@@ -567,17 +567,59 @@ class RulesManager {
      * 🎨 Aplicar cambios de una regla específica al engine
      */
     applyRuleChanges(ruleId) {
-        // Esta función será llamada por el callback configurado
-        // para permitir que el proyecto específico maneje la aplicación
         console.log(`🎨 Applying changes for rule: ${ruleId}`);
+        
+        // COMUNICACIÓN INTER-VENTANA: Disparar evento personalizado global
+        this.broadcastRuleChange(ruleId);
+        
+        // Si estamos en la misma ventana, aplicar directamente
+        if (window.syncBusinessRulesWithManager) {
+            console.log('🔄 Sincronizando reglas en la misma ventana...');
+            window.syncBusinessRulesWithManager();
+        }
     }
 
     /**
      * 🎨 Aplicar todas las reglas al engine
      */
+    /**
+     * 📡 Comunicar cambio de regla a otras ventanas/pestañas
+     */
+    broadcastRuleChange(ruleId) {
+        console.log(`🚀 INICIANDO broadcast para regla: ${ruleId}`);
+        try {
+            // OPCIÓN 1: LocalStorage event (funciona entre pestañas)
+            const changeEvent = {
+                type: 'rule_change',
+                ruleId: ruleId,
+                timestamp: Date.now(),
+                storageKey: this.config.storageKey
+            };
+            
+            console.log('📡 Disparando evento localStorage...');
+            // Disparar evento de storage para comunicación inter-pestaña
+            localStorage.setItem('rules_change_trigger', JSON.stringify(changeEvent));
+            localStorage.removeItem('rules_change_trigger'); // Trigger del evento
+            
+            console.log('🎯 Disparando custom event...');
+            // OPCIÓN 2: Custom event (funciona en la misma ventana)
+            const customEvent = new CustomEvent('rulesChanged', {
+                detail: changeEvent
+            });
+            window.dispatchEvent(customEvent);
+            
+            console.log(`✅ Broadcast completado para regla: ${ruleId}`);
+            
+        } catch (error) {
+            console.error('💥 Error broadcasting rule change:', error);
+        }
+    }
+
     applyAllRules() {
-        // Esta función será llamada por el callback configurado
         console.log('🎨 Applying all rules to engine');
+        
+        // Broadcast para todas las reglas
+        this.broadcastRuleChange('*');
     }
 
     /**
