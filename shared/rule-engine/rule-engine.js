@@ -33,6 +33,12 @@ const RULE_ENGINE_FILES = {
         '../shared/rule-engine/engine.js',
         '../shared/adapters/query-engine-adapter.js',
         '../shared/adapters/business-rules-configurator.js'
+    ],
+    
+    // Componentes opcionales (rutas relativas al HTML que carga este archivo)
+    components: [
+        '../shared/rule-engine/components/rules-manager/rules-state-manager.js',
+        '../shared/rule-engine/components/rules-manager/rules-manager.js'
     ]
 };
 
@@ -132,6 +138,18 @@ async function initializeRuleEngine() {
         
         if (!engineLoaded) {
             throw new Error('Error cargando componentes del motor');
+        }
+
+        // Paso 2.5: Cargar componentes opcionales (en paralelo)
+        if (RULE_ENGINE_FILES.components && RULE_ENGINE_FILES.components.length > 0) {
+            console.log('🎛️ Paso 2.5: Cargando componentes opcionales...');
+            const componentsLoaded = await loadScripts(RULE_ENGINE_FILES.components);
+            
+            if (componentsLoaded) {
+                console.log('✅ Componentes opcionales cargados correctamente');
+            } else {
+                console.warn('⚠️ Error cargando componentes opcionales - continuando sin ellos');
+            }
         }
 
         // Pausa para asegurar que los componentes se registren

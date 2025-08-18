@@ -25,7 +25,9 @@ window.BUSINESS_RULES_CATEGORY.ux = {
     "actions": [
       {
         "type": "collapse_container",
-        "target": "current_container"
+        "target": "current_container",
+        "active": true,
+        "message": "Colapsar contenedor para mantener interfaz limpia y enfocada"
       }
     ],
     

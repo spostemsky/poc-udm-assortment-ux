@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Rules Manager</title>
+    
+    <!-- Estilos del Rules Manager Component -->
+    <link rel="stylesheet" href="components/rules-manager/rules-manager.css">
+    
+    <!-- Estilos específicos para la página standalone -->
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .page-header h1 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1rem; /* Reducido a la mitad */
+            font-weight: 700;
+        }
+
+        .page-header p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 0.55rem; /* Reducido a la mitad */
+        }
+
+        .page-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .rules-manager-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .loading-state {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 4rem;
+            color: #6b7280;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-state {
+            padding: 2rem;
+            text-align: center;
+            color: #dc2626;
+        }
+
+        .error-state h3 {
+            margin: 0 0 1rem 0;
+            color: #dc2626;
+        }
+
+        .error-details {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            text-align: left;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            color: #991b1b;
+        }
+
+
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .page-header {
+                padding: 1.5rem;
+            }
+            
+            .page-header h1 {
+                font-size: 0.75rem; /* Reducido a la mitad */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="page-container">
+        <div class="page-header">
+            <h1>🎛️ Business Rules Manager</h1>
+            <p>Gestiona y configura las reglas de negocio del sistema de manera visual e intuitiva</p>
+        </div>
+
+        <div class="rules-manager-container">
+            <div id="rules-manager-panel">
+                <!-- Loading state inicial -->
+                <div class="loading-state" id="loading-state">
+                    <div class="loading-spinner"></div>
+                    <div>
+                        <h3 id="loading-title">Cargando Rules Manager...</h3>
+                        <p id="loading-message">Inicializando componentes del motor de reglas...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pure Rules Manager - Solo manejo de reglas -->
+    <script>
+        // 🎯 CONFIGURACIÓN DE REGLAS BASE
+        // Solo las reglas, sin dependencias del proyecto
+        window.RULES_CONFIGURATION = {
+            storageKey: 'business_rules_overrides',
+            eventPrefix: 'rules_',
+            
+            // Las reglas se cargarán dinámicamente
+            rules: {},
+            
+            // Eventos que el componente puede emitir
+            events: {
+                RULE_TOGGLED: 'rule_toggled',
+                ACTION_TOGGLED: 'action_toggled', 
+                RULES_RESET: 'rules_reset',
+                RULES_IMPORTED: 'rules_imported',
+                RULES_EXPORTED: 'rules_exported'
+            }
+        };
+    </script>
+    
+    <!-- Pure Components -->
+    <script src="components/rules-manager/rules-state-manager.js"></script>
+    <script src="components/rules-manager/rules-manager.js"></script>
+    
+    <!-- Inicialización específica para página standalone -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🎛️ Iniciando Pure Rules Manager...');
+            
+            try {
+                // Cargar reglas desde archivos
+                updateLoadingMessage('Cargando reglas...', 'Leyendo configuración de reglas...');
+                await loadRulesFromFiles();
+                
+                // Esperar a que los componentes estén listos
+                updateLoadingMessage('Cargando componentes...', 'Inicializando interfaz...');
+                await waitForComponents();
+                
+                // Mensaje final
+                updateLoadingMessage('Inicializando interfaz...', 'Preparando Rules Manager...');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Ocultar loading state
+                const loadingState = document.getElementById('loading-state');
+                if (loadingState) {
+                    loadingState.style.display = 'none';
+                }
+                
+                // PRUEBA: Crear HTML de prueba primero (comentado)
+                // createTestRulesHTML();
+                
+                // Rules Manager habilitado nuevamente
+                // Crear instancia PURA del Rules Manager
+                const rulesManager = new window.RulesManager({
+                    container: '#rules-manager-panel',
+                    theme: 'default',
+                    storageKey: window.RULES_CONFIGURATION.storageKey,
+                    engine: {
+                        getRulesInfo: () => window.RULES_CONFIGURATION.rules,
+                        isInitialized: true
+                    },
+                    
+                    // Configuración pura
+                    standalone: true,
+                    showHeader: false,
+                    
+                    // Solo eventos, sin lógica específica del proyecto
+                    onRuleToggle: (ruleId, active, rule) => {
+                        console.log(`🔄 Rule toggled: ${ruleId} = ${active}`);
+                        
+                        // Emitir evento global para que otros componentes reaccionen
+                        window.dispatchEvent(new CustomEvent(window.RULES_CONFIGURATION.events.RULE_TOGGLED, {
+                            detail: { ruleId, active, rule }
+                        }));
+                        
+                        showNotification(`Regla ${rule.name || ruleId}: ${active ? 'Activada' : 'Desactivada'}`);
+                    },
+                    
+                    onActionToggle: (ruleId, actionIndex, active, action) => {
+                        console.log(`⚙️ Action toggled: ${ruleId}[${actionIndex}] = ${active}`);
+                        
+                        // Emitir evento global
+                        window.dispatchEvent(new CustomEvent(window.RULES_CONFIGURATION.events.ACTION_TOGGLED, {
+                            detail: { ruleId, actionIndex, active, action }
+                        }));
+                        
+                        showNotification(`Acción ${action.type}: ${active ? 'Activada' : 'Desactivada'}`);
+                    },
+                    
+                    onReset: () => {
+                        console.log('🔄 Rules reset to original configuration');
+                        
+                        // Emitir evento global
+                        window.dispatchEvent(new CustomEvent(window.RULES_CONFIGURATION.events.RULES_RESET, {
+                            detail: { timestamp: Date.now() }
+                        }));
+                        
+                        showNotification('Reglas restauradas a configuración original', 'success');
+                    },
+                    
+                    onReady: (manager) => {
+                        console.log('✅ Pure Rules Manager listo:', manager.getStats());
+                        console.log('🔍 Reglas disponibles:', manager.getAllRules());
+                        
+                        // CORRECCIÓN: Mejorar event delegation
+                        const container = document.querySelector('#rules-manager-panel');
+                        if (container) {
+                            container.addEventListener('click', (e) => {
+                                console.log('🖱️ Click detectado en:', e.target);
+                                console.log('🎯 Data-action directo:', e.target.getAttribute('data-action'));
+                                
+                                // Buscar el elemento con data-action más cercano
+                                const actionElement = e.target.closest('[data-action]');
+                                console.log('🔍 Elemento con data-action:', actionElement);
+                                
+                                if (actionElement) {
+                                    const action = actionElement.getAttribute('data-action');
+                                    console.log('⚡ Ejecutando acción:', action);
+                                    
+                                    // Manejar toggle-expand manualmente
+                                    if (action === 'toggle-expand') {
+                                        const ruleItem = actionElement.closest('.rules-rule-item');
+                                        if (ruleItem) {
+                                            const ruleId = ruleItem.getAttribute('data-rule-id');
+                                            console.log('🔄 Expandiendo/colapsando regla:', ruleId);
+                                            
+                                            const isExpanded = ruleItem.classList.contains('expanded');
+                                            if (isExpanded) {
+                                                ruleItem.classList.remove('expanded');
+                                                console.log('📂 Regla colapsada');
+                                            } else {
+                                                ruleItem.classList.add('expanded');
+                                                console.log('📂 Regla expandida');
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                        
+                        showNotification('Rules Manager cargado correctamente', 'success');
+                    },
+                    
+                    onError: (error) => {
+                        console.error('💥 Rules Manager error:', error);
+                        showErrorState(error);
+                    }
+                });
+                
+                // Guardar referencia global
+                window.rulesManager = rulesManager;
+                
+                console.log('✅ Pure Rules Manager inicializado correctamente');
+                
+            } catch (error) {
+                console.error('💥 Error inicializando Pure Rules Manager:', error);
+                showErrorState(error);
+            }
+        });
+        
+        /**
+         * Cargar reglas desde archivos de manera pura
+         */
+        async function loadRulesFromFiles() {
+            console.log('📂 Cargando archivos de reglas...');
+            
+            const ruleFiles = [
+                'rules/business-rules.js',
+                'rules/ux-rules.js', 
+                'rules/ui-rules.js',
+                'rules/validation-rules.js'
+            ];
+            
+            // Cargar archivos de reglas
+            for (const file of ruleFiles) {
+                try {
+                    await loadScript(file);
+                    console.log(`✅ Cargado: ${file}`);
+                } catch (error) {
+                    console.warn(`⚠️ No se pudo cargar ${file}:`, error);
+                }
+            }
+            
+            // Combinar todas las reglas en la configuración
+            const allRules = {};
+            
+            // Debug: Ver qué está disponible en window
+            console.log('🔍 Debug window.BUSINESS_RULES_CATEGORY:', window.BUSINESS_RULES_CATEGORY);
+            
+            // Todos los archivos usan window.BUSINESS_RULES_CATEGORY con diferentes categorías
+            if (window.BUSINESS_RULES_CATEGORY) {
+                if (window.BUSINESS_RULES_CATEGORY.business) {
+                    Object.assign(allRules, window.BUSINESS_RULES_CATEGORY.business);
+                }
+                if (window.BUSINESS_RULES_CATEGORY.ux) {
+                    Object.assign(allRules, window.BUSINESS_RULES_CATEGORY.ux);
+                }
+                if (window.BUSINESS_RULES_CATEGORY.ui) {
+                    Object.assign(allRules, window.BUSINESS_RULES_CATEGORY.ui);
+                }
+                if (window.BUSINESS_RULES_CATEGORY.validation) {
+                    Object.assign(allRules, window.BUSINESS_RULES_CATEGORY.validation);
+                }
+            }
+            
+            window.RULES_CONFIGURATION.rules = allRules;
+            
+            console.log('✅ Reglas cargadas:', Object.keys(allRules));
+            console.log('📋 Detalle de reglas:', allRules);
+        }
+        
+        /**
+         * Cargar script dinámicamente
+         */
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+        
+        /**
+         * Actualizar mensaje de loading
+         */
+        function updateLoadingMessage(title, message) {
+            const loadingTitle = document.getElementById('loading-title');
+            const loadingMessage = document.getElementById('loading-message');
+            if (loadingTitle) loadingTitle.textContent = title;
+            if (loadingMessage) loadingMessage.textContent = message;
+        }
+        
+        /**
+         * Esperar a que los componentes puros estén listos
+         */
+        async function waitForComponents() {
+            console.log('⏳ Esperando componentes...');
+            
+            let attempts = 0;
+            const maxAttempts = 30; // 3 segundos máximo
+            
+            while (attempts < maxAttempts) {
+                // Solo verificar componentes esenciales
+                if (typeof window.RulesManager !== 'undefined' && 
+                    typeof window.RulesStateManager !== 'undefined') {
+                    console.log('✅ Componentes listos');
+                    return;
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
+            throw new Error('Componentes no se cargaron en el tiempo esperado');
+        }
+        
+        /**
+         * Crear HTML de prueba para diagnosticar
+         */
+        function createTestRulesHTML() {
+            const panel = document.getElementById('rules-manager-panel');
+            if (!panel) return;
+            
+            panel.innerHTML = `
+                <div style="padding: 20px; border: 1px solid #ccc; margin: 10px;">
+                    <h3>🧪 PRUEBA DE FUNCIONAMIENTO</h3>
+                    <p>Total reglas cargadas: ${Object.keys(window.RULES_CONFIGURATION.rules).length}</p>
+                    
+                    <div style="border: 1px solid #ddd; margin: 10px 0; padding: 10px;">
+                        <div data-action="toggle-expand" style="cursor: pointer; background: #f0f0f0; padding: 8px; border: 1px solid #ccc;">
+                            🔽 Hacer clic aquí para probar expansión
+                        </div>
+                        <div id="test-content" style="display: none; padding: 10px; background: #f9f9f9;">
+                            <p>✅ ¡El click funcionó! Este contenido debería aparecer/desaparecer.</p>
+                            <button data-action="toggle-rule" data-rule-id="test" style="padding: 5px 10px;">
+                                Toggle de prueba
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <strong>Reglas disponibles:</strong>
+                        <ul>
+                            ${Object.keys(window.RULES_CONFIGURATION.rules).map(ruleId => 
+                                `<li>${ruleId}: ${window.RULES_CONFIGURATION.rules[ruleId].name || 'Sin nombre'}</li>`
+                            ).join('')}
+                        </ul>
+                    </div>
+                </div>
+            `;
+            
+            // Agregar listener de prueba
+            panel.addEventListener('click', (e) => {
+                const action = e.target.getAttribute('data-action');
+                console.log('🧪 Click de prueba:', action, e.target);
+                
+                if (action === 'toggle-expand') {
+                    const content = document.getElementById('test-content');
+                    if (content) {
+                        content.style.display = content.style.display === 'none' ? 'block' : 'none';
+                        e.target.textContent = content.style.display === 'none' ? 
+                            '🔽 Hacer clic aquí para probar expansión' : 
+                            '🔼 Hacer clic aquí para colapsar';
+                    }
+                } else if (action === 'toggle-rule') {
+                    alert('¡Toggle de prueba funcionó!');
+                }
+            });
+            
+            console.log('🧪 HTML de prueba creado');
+        }
+        
+        /**
+         * Mostrar notificación simple
+         */
+        function showNotification(message, type = 'info') {
+            // Crear elemento de notificación
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 10000;
+                font-size: 0.875rem;
+                max-width: 300px;
+                opacity: 0;
+                transform: translateX(100%);
+                transition: all 0.3s ease;
+            `;
+            notification.textContent = message;
+            
+            // Agregar al DOM
+            document.body.appendChild(notification);
+            
+            // Animar entrada
+            setTimeout(() => {
+                notification.style.opacity = '1';
+                notification.style.transform = 'translateX(0)';
+            }, 10);
+            
+            // Remover después de 3 segundos
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+        
+        /**
+         * Mostrar estado de error
+         */
+        function showErrorState(error) {
+            const panel = document.getElementById('rules-manager-panel');
+            if (!panel) return;
+            
+            panel.innerHTML = `
+                <div class="error-state">
+                    <h3>❌ Error al cargar Rules Manager</h3>
+                    <p>No se pudo inicializar el componente. Por favor, verifica la consola para más detalles.</p>
+                    <div class="error-details">
+                        <strong>Error:</strong> ${error.message || error}
+                        <br><br>
+                        <strong>Posibles soluciones:</strong>
+                        <ul style="text-align: left; margin-top: 0.5rem;">
+                            <li>Verifica que todos los archivos del Rule Engine estén cargados</li>
+                            <li>Revisa la consola del navegador para errores específicos</li>
+                            <li>Asegúrate de que el Business Rules Engine esté inicializado</li>
+                            <li>Recarga la página para intentar nuevamente</li>
+                        </ul>
+                    </div>
+                    <button onclick="location.reload()" style="
+                        background: #dc2626; 
+                        color: white; 
+                        border: none; 
+                        padding: 8px 16px; 
+                        border-radius: 6px; 
+                        cursor: pointer; 
+                        margin-top: 1rem;
+                    ">🔄 Recargar Página</button>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

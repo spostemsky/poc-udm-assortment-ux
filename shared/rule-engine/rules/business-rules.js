@@ -27,7 +27,9 @@ window.BUSINESS_RULES_CATEGORY.business = {
         "target": "sku_selector",
         "value": "{{matched_vendor_sku}}",
         "display_text": "{{matched_vendor_sku}}",
-        "description": "{{matched_item_title}}"
+        "message": "{{matched_item_title}}",
+        "active": true,
+        "message": "Pre-seleccionar automáticamente el SKU coincidente en el dropdown"
       },
       {
         "type": "disable_dropdown",
@@ -36,30 +38,35 @@ window.BUSINESS_RULES_CATEGORY.business = {
           "cursor": "not-allowed",
           "backgroundColor": "#f3f4f6",
           "color": "#6b7280"
-        }
+        },
+        "active": true,
+        "message": "Deshabilitar el dropdown para prevenir cambios manuales"
       },
       {
         "type": "hide_element",
-        "target": ".horizontal-dropdown"
+        "target": ".horizontal-dropdown",
+        "active": true,
+        "message": "Ocultar elementos de dropdown horizontal adicionales"
       },
       {
         "type": "hide_element",
-        "target": ".add-button"
+        "target": ".add-button",
+        "active": true,
+        "message": "Ocultar botón 'Agregar otro producto' cuando hay coincidencia exacta"
       },
       {
         "type": "set_container_attribute",
         "attribute": "data-sku-forzado",
-        "value": "{{matched_vendor_sku}}"
+        "value": "{{matched_vendor_sku}}",
+        "active": true,
+        "message": "Marcar contenedor con atributo de SKU forzado para referencia"
       },
       {
         "type": "set_container_attribute",
         "attribute": "data-coincidencia-exacta",
-        "value": "true"
-      },
-      {
-        "type": "set_container_attribute",
-        "attribute": "data-priority-test",
-        "value": "priority-1-wins"
+        "value": "true",
+        "active": true,
+        "message": "Marcar contenedor como coincidencia exacta para validaciones posteriores"
       }
     ],
     
@@ -93,7 +100,8 @@ window.BUSINESS_RULES_CATEGORY.business = {
       {
         "type": "filter_container",
         "target": "container",
-        "message": "Item filtrado: material_id no encontrado en orden"
+        "message": "Item filtrado: material_id no encontrado en orden",
+        "active": true
       }
     ],
     
@@ -126,7 +134,8 @@ window.BUSINESS_RULES_CATEGORY.business = {
         "target": "sku_selector",
         "value": "{{matched_vendor_sku}}",
         "display_text": "{{matched_vendor_sku}}",
-        "description": "Match en cascada vía material_id {{material_id}}"
+        "message": "Match en cascada vía material_id {{material_id}}",
+        "active": true
       }
     ],
     
@@ -158,7 +167,8 @@ window.BUSINESS_RULES_CATEGORY.business = {
       {
         "type": "show_container_normal",
         "target": "container",
-        "message": "Contenedor mostrado normalmente - sin matches encontrados"
+        "message": "Contenedor mostrado normalmente - sin matches encontrados",
+        "active": true
       }
     ],
     

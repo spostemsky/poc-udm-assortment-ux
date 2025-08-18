@@ -39,6 +39,12 @@ class ActionExecutor {
      * Ejecutar una acción específica
      */
     executeAction(action, context, variables) {
+        // ✅ VERIFICAR SI LA ACCIÓN ESTÁ ACTIVA
+        if (action.active === false) {
+            console.log(`⏸️ Saltando acción inactiva: ${action.type}`);
+            return;
+        }
+
         const handler = this.actionHandlers.get(action.type);
         if (handler) {
             console.log(`🎬 Ejecutando acción: ${action.type}`);
@@ -61,7 +67,7 @@ class ActionExecutor {
 
         const value = this.resolveVariableValue(action.value, variables, context);
         const displayText = this.resolveVariableValue(action.display_text, variables, context);
-        const description = this.resolveVariableValue(action.description, variables, context);
+        const message = this.resolveVariableValue(action.message, variables, context);
 
         // Pre-seleccionar el valor
         dropdown.setAttribute('data-value', value);
@@ -76,7 +82,7 @@ class ActionExecutor {
         // Actualizar descripción
         const descriptionDiv = container.querySelector('.product-description');
         if (descriptionDiv) {
-            descriptionDiv.textContent = description;
+            descriptionDiv.textContent = message;
         }
 
         console.log('✅ Dropdown pre-seleccionado:', value);

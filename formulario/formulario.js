@@ -1674,6 +1674,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 🚀 INICIALIZAR BUSINESS RULES ENGINE
     await inicializarBusinessRulesEngine();
     
+    // 📡 CONFIGURAR LISTENERS DE EVENTOS DE REGLAS
+    configurarEventListenersReglas();
+    
+
+    
     // Iniciar la carga de datos al cargar la página (ahora incluye facturas)
     cargarDatosIniciales();
     
@@ -1693,6 +1698,144 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 🔄 FALLBACK: Polling de localStorage para detectar cambios (si eventos fallan)
     iniciarPollingFacturas();
 });
+
+
+
+// =============================================================================
+// SISTEMA DE EVENTOS DE REGLAS
+// =============================================================================
+
+/**
+ * Configurar listeners para eventos del Rules Manager
+ */
+function configurarEventListenersReglas() {
+    console.log('📡 Configurando listeners de eventos de reglas...');
+    
+    // Listener para cambios de reglas
+    window.addEventListener('rule_toggled', (event) => {
+        const { ruleId, active, rule } = event.detail;
+        console.log(`📡 Evento recibido - Regla ${ruleId}: ${active}`);
+        
+        // Re-aplicar reglas a contenedores existentes
+        reapplyRulesToExistingContainers();
+    });
+    
+    // Listener para cambios de acciones
+    window.addEventListener('action_toggled', (event) => {
+        const { ruleId, actionIndex, active, action } = event.detail;
+        console.log(`📡 Evento recibido - Acción ${ruleId}[${actionIndex}]: ${active}`);
+        
+        // Re-aplicar reglas a contenedores existentes
+        reapplyRulesToExistingContainers();
+    });
+    
+    // Listener para reset de reglas
+    window.addEventListener('rules_reset', (event) => {
+        console.log('📡 Evento recibido - Reset de reglas');
+        
+        // Re-aplicar todas las reglas desde cero
+        reapplyRulesToExistingContainers();
+    });
+    
+    console.log('✅ Listeners de eventos de reglas configurados');
+}
+
+/**
+ * Re-aplicar reglas a contenedores existentes
+ */
+function reapplyRulesToExistingContainers() {
+    try {
+        const containers = document.querySelectorAll('.container:not(.item-container-template)');
+        
+        if (containers.length === 0) {
+            console.log('ℹ️ No hay contenedores para re-aplicar reglas');
+            return;
+        }
+
+        console.log(`🔄 Re-aplicando reglas a ${containers.length} contenedores...`);
+        
+        containers.forEach((container, index) => {
+            // Obtener información del contenedor
+            const itemTitleElement = container.querySelector('.item-title');
+            if (!itemTitleElement) return;
+            
+            const itemTitle = itemTitleElement.textContent || '';
+            const itemIdMatch = itemTitle.match(/#(.+?)(?:\s|$)/);
+            const itemId = itemIdMatch ? itemIdMatch[1] : '';
+            
+            if (!itemId) return;
+            
+            // Obtener número de orden
+            const numeroOrdenCompra = obtenerOrdenDeCompraDeFactura(facturaActual);
+            if (!numeroOrdenCompra) return;
+            
+            // Limpiar efectos de reglas anteriores
+            limpiarEfectosDeReglas(container);
+            
+            // Re-aplicar reglas con estado actual
+            if (businessRulesInitialized && window.businessRulesEngine) {
+                window.businessRulesEngine.aplicarRestriccionesContainer(
+                    container, itemId, numeroOrdenCompra, index, false
+                );
+            }
+        });
+        
+        console.log('✅ Reglas re-aplicadas a todos los contenedores');
+        
+    } catch (error) {
+        console.error('💥 Error re-aplicando reglas:', error);
+    }
+}
+
+/**
+ * Limpiar efectos de reglas de un contenedor
+ */
+function limpiarEfectosDeReglas(container) {
+    try {
+        // Limpiar atributos de reglas
+        const ruleAttributes = [
+            'data-sku-forzado',
+            'data-coincidencia-exacta',
+            'data-analysis-status',
+            'data-analysis-should-filter',
+            'data-analysis-should-preselect-cascade',
+            'data-analysis-should-show-normal',
+            'data-analysis-has-direct-match',
+            'data-analysis-matched-sku',
+            'data-bre-filtered',
+            'data-bre-show-normal'
+        ];
+        
+        ruleAttributes.forEach(attr => {
+            container.removeAttribute(attr);
+        });
+        
+        // Resetear estilos que puedan haber sido aplicados por reglas
+        container.style.display = '';
+        container.style.opacity = '';
+        
+        // Resetear dropdowns y elementos dentro del contenedor
+        const dropdowns = container.querySelectorAll('.custom-dropdown');
+        dropdowns.forEach(dropdown => {
+            // Remover estilos de disabled
+            dropdown.style.cursor = '';
+            dropdown.style.backgroundColor = '';
+            dropdown.style.color = '';
+            
+            // Remover clases de estado
+            dropdown.classList.remove('disabled');
+        });
+        
+        // Mostrar elementos que puedan haber sido ocultados
+        const hiddenElements = container.querySelectorAll('.horizontal-dropdown, .add-button');
+        hiddenElements.forEach(element => {
+            element.style.display = '';
+        });
+        
+    } catch (error) {
+        console.error('💥 Error limpiando efectos de reglas:', error);
+    }
+}
 
 /**
  * Espera a que el Business Rules Engine esté completamente inicializado
