@@ -150,12 +150,14 @@ const ENTITY_CONFIG = {
                 { 
                     key: "identifier", 
                     label: "Identificador", 
-                    type: "text"
+                    type: "text",
+                    required: true
                 },
                 { 
                     key: "vendor_id", 
                     label: "Vendor ID", 
-                    type: "text"
+                    type: "text",
+                    required: true
                 },
                 { 
                     key: "type", 
@@ -168,21 +170,26 @@ const ENTITY_CONFIG = {
                     type: "text"
                 },
                 { 
-                    key: "equivalences", 
+                    key: "content", 
                     label: "Equivalencias", 
                     type: "array",
-                    display: "count"
+                    display: "count",
+                    required: true
                 }
             ],
             
             // Template para nuevos registros
             template: {
                 uuid: "",
+                identifier_type:"",
                 identifier: "",
+                material_id:"",
                 vendor_id: "",
+                branch_ids:[],
                 format:"",
                 type: "",
-                equivalences: []
+                context:"",
+                content: []
             },
 
             // Configuraciones específicas de la entidad
